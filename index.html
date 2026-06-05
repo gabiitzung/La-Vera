@@ -1159,22 +1159,29 @@ function renderBarChart(id,data,color,field){
   el.innerHTML=data.map(d=>`<div class="bar-wrap"><div class="bar" style="height:${Math.max(4,Math.round((d[field]||0)/max*100))}px;background:${color};opacity:0.85;" title="${d.d}: R$ ${(d[field]||0).toFixed(0)}"></div><div class="bar-label">${d.d}</div></div>`).join('');
 }
 
+// Store day detail data keyed by "tableId_day"
+const _dayDetailStore = {};
+
 function renderDayTable(id,data,plat,month){
   const tb=document.getElementById(id);if(!tb||!data)return;
   const sorted=[...data].sort((a,b)=>{
     const[da,ma]=a.d.split('/');const[db,mb]=b.d.split('/');
     return(+ma*100+ +da)-(+mb*100+ +db);
   });
-  tb.innerHTML=sorted.map(d=>`<tr>
-    <td>${d.d}</td><td>${d.n}</td>
-    <td>R$ ${d.b.toFixed(2)}</td>
-    <td>R$ ${d.l.toFixed(2)}</td>
-    <td style="color:var(--red)">R$ ${(d.b-d.l).toFixed(2)}</td>
-    <td>${d.pedidos&&d.pedidos.length
-      ?`<button class="btn" style="padding:3px 10px;font-size:11px;background:var(--cream-dark);color:var(--brown);"
-          onclick="openDayDetail('${d.d}',${JSON.stringify(d.pedidos||[])})">Ver detalhe</button>`
-      :'—'}</td>
-  </tr>`).join('');
+  tb.innerHTML=sorted.map(d=>{
+    const storeKey = id+'_'+d.d;
+    if(d.pedidos && d.pedidos.length) _dayDetailStore[storeKey] = d.pedidos;
+    return `<tr>
+      <td>${d.d}</td><td>${d.n}</td>
+      <td>R$ ${d.b.toFixed(2)}</td>
+      <td>R$ ${d.l.toFixed(2)}</td>
+      <td style="color:var(--red)">R$ ${(d.b-d.l).toFixed(2)}</td>
+      <td>${d.pedidos&&d.pedidos.length
+        ?`<button class="btn" style="padding:3px 10px;font-size:11px;background:var(--cream-dark);color:var(--brown);"
+            onclick="openDayDetail('${d.d}','${storeKey}')">Ver detalhe</button>`
+        :'—'}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ══════════ UPLOAD ══════════
@@ -2159,7 +2166,9 @@ function clearHistorico(){
 }
 
 
-function openDayDetail(day, pedidos){
+function openDayDetail(day, storeKey){
+  const pedidos = _dayDetailStore[storeKey] || [];
+  if(!pedidos.length){ showToast('Sem detalhes disponíveis para este dia.'); return; }
   const R = v => 'R$ '+parseFloat(v||0).toFixed(2).replace('.',',');
   const totBruto   = pedidos.reduce((s,p)=>s+p.bruto,0);
   const totSubLoja = pedidos.reduce((s,p)=>s+p.subLoja,0);
