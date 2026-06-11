@@ -348,7 +348,10 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
 
 <!-- INGREDIENTES -->
 <div class="page" id="page-ingredients">
-  <p class="section-title">Ingredientes &amp; Custos</p>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+    <p class="section-title" style="margin:0;">Ingredientes &amp; Custos</p>
+    <button class="btn btn-brown" onclick="exportIngredientes()" style="margin-top:4px;">⬇ Exportar CSV</button>
+  </div>
   <p class="section-sub">Atualize os preços aqui — todas as fichas técnicas recalculam automaticamente.</p>
   <div class="card">
     <table class="ingr-table">
@@ -364,13 +367,15 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
       </tr></thead>
       <tbody id="ingr-tbody"></tbody>
     </table>
-    <div style="margin-top:16px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end;">
-      <input type="text"   id="new-ingr-name"       placeholder="Nome do ingrediente"  class="ingr-new-input">
-      <input type="number" id="new-ingr-preco"       placeholder="Preço R$"             class="ingr-new-input">
-      <input type="number" id="new-ingr-qtd-compra"  placeholder="Qtd"                  class="ingr-new-input">
-      <input type="text"   id="new-ingr-un-compra"   placeholder="kg/g/un"              class="ingr-new-input">
-      <input type="number" id="new-ingr-qtd-base"    placeholder="Base g"               class="ingr-new-input">
-      <input type="text"   id="new-ingr-un-base"     placeholder="g/un"                 class="ingr-new-input">
+    <div style="margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="text"   id="new-ingr-name"      placeholder="Nome do ingrediente" class="ingr-new-input" style="flex:2;min-width:160px;">
+      <input type="number" id="new-ingr-preco"     placeholder="Preço pago (R$)"     class="ingr-new-input" style="width:110px;" step="0.01" min="0">
+      <input type="number" id="new-ingr-qtd-compra" placeholder="Qtd comprada"       class="ingr-new-input" style="width:100px;" step="0.001" min="0">
+      <select id="new-ingr-un-compra" class="ingr-new-input" style="width:90px;">
+        <option value="g">g</option>
+        <option value="kg">kg</option>
+        <option value="un">unidade</option>
+      </select>
       <button class="btn btn-brown" onclick="addIngredient()">+ Adicionar</button>
     </div>
   </div>
@@ -445,8 +450,8 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
         <tr>
           <th style="width:36px;"></th>
           <th>Pizza</th>
-          <th>🟠 Keeta (R$)</th>
-          <th>🔴 iFood (R$)</th>
+          <th>🟠 Keeta — preço desejado (R$)</th>
+          <th>🔴 iFood — preço desejado (R$)</th>
           <th>Status</th>
           <th></th>
         </tr>
@@ -708,7 +713,7 @@ const _cache = {};
 
 // localStorage fallback (offline / first load before Supabase responds)
 function lsLoad(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}}
-function lsSave(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+function lsSave(k,v){try{localStorage.setItem(k,JSON.stringify(v));localStorage.setItem(k+'_ts',Date.now().toString());}catch{}}
 
 // Supabase REST helpers
 async function sbGet(table){
@@ -776,8 +781,13 @@ function load(k, d){
   if(table){
     sbGet(table).then(remote => {
       if(remote !== null){
-        _cache[k] = remote;
-        lsSave(k, remote);
+        // Don't overwrite if user edited locally in the last 5 minutes
+        const lastEdit = parseInt(localStorage.getItem(k+'_ts')||'0');
+        const fiveMinsAgo = Date.now() - 5*60*1000;
+        if(lastEdit < fiveMinsAgo){
+          _cache[k] = remote;
+          lsSave(k, remote);
+        }
       }
     });
   }
@@ -1497,6 +1507,9 @@ function renderPizzaDetail(){
   detail.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
       <div class="pizza-detail-name">${pizza.nome}</div>
+      <button class="btn btn-green" id="pizza-save-btn" onclick="savePizzaManual()" style="font-size:12px;">
+        💾 Salvar ficha
+      </button>
     </div>
     <table class="ingredients-table"><thead><tr><th>Ingrediente</th><th>Qtd usada</th><th>Unidade</th><th>Custo (R$)</th><th></th></tr></thead><tbody>${rows}</tbody></table>
     <div class="add-ingredient">
@@ -1516,7 +1529,21 @@ function renderPizzaDetail(){
   calcPricing();
 }
 
-function updateIngredientQtd(pi,ii,val){pizzas[pi].ingredientes[ii].qtd=parseFloat(val)||0;save('lv_pizzas',pizzas);calcPricing();}
+function savePizzaManual(){
+  save('lv_pizzas', pizzas);
+  const btn = document.getElementById('pizza-save-btn');
+  if(btn){ btn.textContent='✓ Salvo!'; btn.style.background='var(--green)'; setTimeout(()=>{ btn.textContent='💾 Salvar ficha'; },2000); }
+  showToast('✓ Ficha salva!');
+}
+
+function updateIngredientQtd(pi,ii,val){
+  pizzas[pi].ingredientes[ii].qtd=parseFloat(val)||0;
+  save('lv_pizzas',pizzas);
+  calcPricing();
+  // Visual feedback on save button
+  const btn=document.getElementById('pizza-save-btn');
+  if(btn){ btn.textContent='✓ Salvo automaticamente'; setTimeout(()=>{ btn.textContent='💾 Salvar ficha'; },1500); }
+}
 function removeIngredient(pi,ii){pizzas[pi].ingredientes.splice(ii,1);save('lv_pizzas',pizzas);renderPizzaDetail();}
 function addIngredientToPizza(){
   const nome=document.getElementById('add-ingr-select').value;
@@ -1624,14 +1651,20 @@ function addIngredient(){
   const nome       = document.getElementById('new-ingr-name').value.trim();
   const preco      = parseFloat(document.getElementById('new-ingr-preco').value)||0;
   const qtd_compra = parseFloat(document.getElementById('new-ingr-qtd-compra').value)||1;
-  const un_compra  = document.getElementById('new-ingr-un-compra').value.trim()||'g';
-  const qtd_base   = parseFloat(document.getElementById('new-ingr-qtd-base').value)||qtd_compra;
-  const un_base    = 'g';
+  const un_compra  = document.getElementById('new-ingr-un-compra').value||'g';
   if(!nome){showToast('Informe o nome do ingrediente.');return;}
+  if(!qtd_compra){showToast('Informe a quantidade comprada.');return;}
+  // Auto-calc: kg → qtd_base em g, g/un → 1:1
+  const uc = un_compra.toLowerCase();
+  const qtd_base = uc==='kg' ? qtd_compra*1000 : qtd_compra;
+  const un_base  = uc==='un' ? 'un' : 'g';
   const custo_base = qtd_base > 0 ? preco/qtd_base : 0;
   ingredients.push({nome,preco,qtd_compra,un_compra,qtd_base,un_base,custo_base,obs:''});
   save('lv_ingredients',ingredients);
-  ['new-ingr-name','new-ingr-preco','new-ingr-qtd-compra','new-ingr-un-compra','new-ingr-qtd-base'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('new-ingr-name').value='';
+  document.getElementById('new-ingr-preco').value='';
+  document.getElementById('new-ingr-qtd-compra').value='';
+  document.getElementById('new-ingr-un-compra').value='g';
   renderIngredients();
   showToast('Ingrediente adicionado!');
 }
@@ -2121,7 +2154,7 @@ function exportRelatorio(){
   const ind = (params.vendas||150)>0 ? totalInd/(params.vendas||150) : 0;
   rows.push('');
   rows.push('SECAO 3 - CUSTO ATUAL DAS PIZZAS');
-  rows.push('Pizza,Custo ingredientes,Custo indireto,Custo total,Preco Keeta,Preco iFood');
+  rows.push('Pizza,Custo ingredientes,Custo indireto,Custo total,Preco desejado Keeta,Preco desejado iFood');
   const menu = getMenu();
   pizzas.forEach(p=>{
     const ci = calcPizzaCost(p);
@@ -2196,10 +2229,13 @@ function openDayDetail(day, storeKey){
     }).join('');
 
   document.getElementById('day-modal-content').innerHTML = `
-    <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);margin-bottom:4px;">
-      Pedidos do dia ${day}
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);">Pedidos do dia ${day}</div>
+        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">${pedidos.length} pedidos</div>
+      </div>
+      <button class="btn btn-brown" style="font-size:12px;" onclick="exportDayDetail('${day}',_dayDetailStore[Object.keys(_dayDetailStore).find(k=>k.endsWith('_${day}'))||'']||[])">⬇ Exportar CSV</button>
     </div>
-    <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;">${pedidos.length} pedidos</div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:16px;">
       <div style="background:var(--cream-dark);border-radius:8px;padding:10px;text-align:center;">
@@ -2247,6 +2283,83 @@ function openDayDetail(day, storeKey){
     </div>`;
 
   document.getElementById('day-modal-bg').classList.add('open');
+}
+
+
+function exportDayDetail(day, pedidos){
+  if(!pedidos||!pedidos.length){showToast('Sem dados para exportar.');return;}
+  const R = v => parseFloat(v||0).toFixed(2);
+  const rows = [];
+  rows.push('Detalhamento do dia ' + day);
+  rows.push('Hora,Pedido,Pagamento,Bruto,Sub Loja,Com Basica,Distancia,Taxa Dist,Taxa Online,Liquido (AJ),Obs');
+  pedidos.sort((a,b)=>a.horario.localeCompare(b.horario)).forEach(p=>{
+    rows.push([
+      p.horario,
+      '"'+p.serie+'"',
+      p.pagForm,
+      R(p.bruto),
+      R(p.subLoja),
+      R(p.comBasica),
+      p.distKm||'',
+      R(p.comDist),
+      R(p.taxaOnline),
+      R(p.liquido),
+      '"'+(p.nota||'')+'"'
+    ].join(','));
+  });
+  // Totals row
+  const totBruto    = pedidos.reduce((s,p)=>s+p.bruto,0);
+  const totSubLoja  = pedidos.reduce((s,p)=>s+p.subLoja,0);
+  const totComBasica= pedidos.reduce((s,p)=>s+p.comBasica,0);
+  const totComDist  = pedidos.reduce((s,p)=>s+p.comDist,0);
+  const totTaxaOnl  = pedidos.reduce((s,p)=>s+p.taxaOnline,0);
+  const totLiq      = pedidos.reduce((s,p)=>s+p.liquido,0);
+  rows.push(['TOTAL','','',R(totBruto),R(totSubLoja),R(totComBasica),'',R(totComDist),R(totTaxaOnl),R(totLiq),''].join(','));
+
+  const sep=String.fromCharCode(10);
+  const csv2=rows.join(sep);
+  const blob=new Blob([csv2],{type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url;
+  const safeDay=day.replace(/[/]/g,'-');
+  a.download='pedidos_'+safeDay+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exportado!');
+}
+
+
+function exportIngredientes(){
+  const sorted=[...ingredients].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  const rows=[];
+  rows.push('Ingrediente,Preco pago (R$),Qtd comprada,Unidade compra,Qtd base,Unidade base,Custo por base (R$),Atualizado em');
+  sorted.forEach(ingr=>{
+    const uc=(ingr.un_compra||'g').toLowerCase();
+    const qb=uc==='kg'?(ingr.qtd_compra||1)*1000:(ingr.qtd_compra||1);
+    const cb=qb>0?(ingr.preco/qb):0;
+    rows.push([
+      '"'+ingr.nome+'"',
+      (ingr.preco||0).toFixed(2),
+      ingr.qtd_compra||1,
+      ingr.un_compra||'g',
+      qb,
+      ingr.un_base||'g',
+      cb.toFixed(6),
+      '"'+(ingr.obs||'')+'"'
+    ].join(','));
+  });
+  const sep=String.fromCharCode(10);
+  const csv=rows.join(sep);
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const today=new Date().toLocaleDateString('pt-BR').replace(/[/]/g,'-');
+  a.download='ingredientes_lavera_'+today+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exportado!');
 }
 
 
