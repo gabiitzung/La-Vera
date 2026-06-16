@@ -1486,22 +1486,21 @@ function parseIfood(wb){
       m.dias[dayLabel].b+=bruto;
       m.dias[dayLabel].l+=liquido;
       m.dias[dayLabel].n++;
-      // Store order detail
-      const pagamento=[order.pagMet,order.pagBand].filter(Boolean).join(' / ');
-      const detalhes=order.linhas.map(l=>l.desc+': R$ '+l.valor.toFixed(2)).join(' | ');
+      // Store order detail — raw lines for flexible display
+      const pagamento=[order.pagMet,order.pagBand].filter(v=>v&&v!=='nan'&&v!=='undefined').join(' / ');
       m.dias[dayLabel].pedidos.push({
-        serie:     String(order.curto),
-        horario:   hora,
-        pagForm:   pagamento,
-        bruto:     bruto,
-        subLoja:   subLoja,
-        comBasica: comissao*0.88,
-        comDist:   0,
-        taxaOnline:comissao*0.12,
-        subKeeta:  subIfood,
-        liquido:   liquido,
-        distKm:    '',
-        nota:      detalhes,
+        serie:   String(order.curto),
+        horario: hora,
+        pagForm: pagamento,
+        bruto:   bruto,
+        liquido: liquido,
+        linhas:  order.linhas.filter(l=>l.tipo!=='').map(l=>({
+          desc:  l.desc,
+          valor: l.valor,
+          tipo:  l.tipo,
+          resp:  l.resp,
+        })),
+        plat: 'ifood',
       });
     }
   });
@@ -2285,41 +2284,42 @@ function openDayDetail(day, storeKey){
   const pedidos = _dayDetailStore[storeKey] || [];
   if(!pedidos.length){ showToast('Sem detalhes disponíveis para este dia.'); return; }
   const R = v => 'R$ '+parseFloat(v||0).toFixed(2).replace('.',',');
-  const totBruto   = pedidos.reduce((s,p)=>s+p.bruto,0);
-  const totSubLoja = pedidos.reduce((s,p)=>s+p.subLoja,0);
-  const totComBasica= pedidos.reduce((s,p)=>s+p.comBasica,0);
-  const totComDist = pedidos.reduce((s,p)=>s+p.comDist,0);
-  const totTaxaOnl = pedidos.reduce((s,p)=>s+p.taxaOnline,0);
-  const totLiq     = pedidos.reduce((s,p)=>s+p.liquido,0);
+  const isIfood = pedidos[0] && pedidos[0].plat === 'ifood';
 
-  const rows = pedidos
-    .sort((a,b)=>a.horario.localeCompare(b.horario))
-    .map(p=>{
-      const totalDespesas = p.subLoja + p.comBasica + p.comDist + p.taxaOnline;
-      return `<tr>
-        <td style="font-size:12px;color:var(--text-light)">${p.horario}</td>
-        <td style="font-size:11px;color:var(--text-mid)">${p.serie}</td>
-        <td style="font-size:12px">${p.pagForm}</td>
-        <td style="font-weight:500">${R(p.bruto)}</td>
-        <td style="color:var(--red);font-size:12px">${R(p.subLoja)}</td>
-        <td style="color:var(--red);font-size:12px">${R(p.comBasica)}</td>
-        <td style="color:var(--red);font-size:12px">${p.distKm||'—'} / ${R(p.comDist)}</td>
-        <td style="color:var(--red);font-size:12px">${R(p.taxaOnline)}</td>
-        <td style="font-weight:500;color:var(--green)">${R(p.liquido)}</td>
-        ${p.nota?`<td style="font-size:11px;color:var(--amber);max-width:120px;word-break:break-word">⚠️ ${p.nota}</td>`:'<td></td>'}
-      </tr>`;
-    }).join('');
+  const totBruto = pedidos.reduce((s,p)=>s+p.bruto,0);
+  const totLiq   = pedidos.reduce((s,p)=>s+p.liquido,0);
 
-  document.getElementById('day-modal-content').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
-      <div>
-        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);">Pedidos do dia ${day}</div>
-        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">${pedidos.length} pedidos</div>
+  // Summary cards
+  let summaryCards = '';
+  if(isIfood){
+    // Aggregate all line types across all orders
+    const lineMap = {};
+    pedidos.forEach(p=>(p.linhas||[]).forEach(l=>{
+      if(!lineMap[l.desc]) lineMap[l.desc]={total:0,resp:l.resp};
+      lineMap[l.desc].total += l.valor;
+    }));
+    const charges = Object.entries(lineMap).filter(([,v])=>v.total<0);
+    const credits = Object.entries(lineMap).filter(([,v])=>v.total>0 && !['Entrada Financeira'].includes(''));
+    summaryCards = `
+      <div style="background:var(--cream-dark);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-light);margin-bottom:3px;">Bruto total</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);">${R(totBruto)}</div>
       </div>
-      <button class="btn btn-brown" style="font-size:12px;" onclick="exportDayDetail('${day}',_dayDetailStore[Object.keys(_dayDetailStore).find(k=>k.endsWith('_${day}'))||'']||[])">⬇ Exportar CSV</button>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:16px;">
+      ${charges.map(([desc,v])=>`
+        <div style="background:var(--red-soft);border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--red);margin-bottom:3px;">${desc.replace('iFood','').replace('do cliente','').trim()}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--red);">${R(v.total)}</div>
+        </div>`).join('')}
+      <div style="background:var(--green-soft);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:10px;color:var(--green);margin-bottom:3px;">Líquido total</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--green);">${R(totLiq)}</div>
+      </div>`;
+  } else {
+    const totSubLoja  = pedidos.reduce((s,p)=>s+(p.subLoja||0),0);
+    const totComBasica= pedidos.reduce((s,p)=>s+(p.comBasica||0),0);
+    const totComDist  = pedidos.reduce((s,p)=>s+(p.comDist||0),0);
+    const totTaxaOnl  = pedidos.reduce((s,p)=>s+(p.taxaOnline||0),0);
+    summaryCards = `
       <div style="background:var(--cream-dark);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:10px;color:var(--text-light);margin-bottom:3px;">Bruto total</div>
         <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);">${R(totBruto)}</div>
@@ -2339,28 +2339,66 @@ function openDayDetail(day, storeKey){
       <div style="background:var(--green-soft);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:10px;color:var(--green);margin-bottom:3px;">Líquido total</div>
         <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--green);">${R(totLiq)}</div>
-      </div>
-    </div>
+      </div>`;
+  }
 
+  // Build rows
+  const rows = pedidos
+    .sort((a,b)=>(a.horario||'').localeCompare(b.horario||''))
+    .map(p=>{
+      if(isIfood){
+        // iFood: show each line as sub-rows inside the order
+        const linhas = (p.linhas||[]).map(l=>{
+          const neg = l.valor < 0;
+          const isIfoodResp = l.resp==='IFOOD';
+          return `<div style="display:flex;justify-content:space-between;font-size:11px;padding:1px 0;color:${neg?(isIfoodResp?'var(--red)':'var(--amber)'):'var(--green)'}">
+            <span>${l.desc}</span>
+            <span style="font-weight:500;white-space:nowrap;margin-left:8px;">${R(l.valor)}</span>
+          </div>`;
+        }).join('');
+        return `<tr>
+          <td style="font-size:12px;color:var(--text-light)">${p.horario}</td>
+          <td style="font-size:11px;color:var(--text-mid)">#${p.serie}</td>
+          <td style="font-size:12px">${p.pagForm}</td>
+          <td style="font-weight:500">${R(p.bruto)}</td>
+          <td style="min-width:200px">${linhas}</td>
+          <td style="font-weight:500;color:var(--green)">${R(p.liquido)}</td>
+        </tr>`;
+      } else {
+        return `<tr>
+          <td style="font-size:12px;color:var(--text-light)">${p.horario}</td>
+          <td style="font-size:11px;color:var(--text-mid)">${p.serie}</td>
+          <td style="font-size:12px">${p.pagForm}</td>
+          <td style="font-weight:500">${R(p.bruto)}</td>
+          <td style="color:var(--red);font-size:12px">${R(p.subLoja)}</td>
+          <td style="color:var(--red);font-size:12px">${R(p.comBasica)}</td>
+          <td style="color:var(--red);font-size:12px">${p.distKm||'—'} / ${R(p.comDist)}</td>
+          <td style="color:var(--red);font-size:12px">${R(p.taxaOnline)}</td>
+          <td style="font-weight:500;color:var(--green)">${R(p.liquido)}</td>
+          ${p.nota?`<td style="font-size:11px;color:var(--amber)">⚠️ ${p.nota}</td>`:'<td></td>'}
+        </tr>`;
+      }
+    }).join('');
+
+  const headers = isIfood
+    ? '<th>Hora</th><th>Pedido</th><th>Pagamento</th><th>Bruto</th><th>Cobranças detalhadas</th><th>Líquido</th>'
+    : '<th>Hora</th><th>Pedido</th><th>Pagamento</th><th>Bruto</th><th>Sub. loja</th><th>Com. básica</th><th>Dist./Taxa</th><th>Taxa online</th><th>Líquido</th><th>Obs.</th>';
+
+  document.getElementById('day-modal-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);">Pedidos do dia ${day}</div>
+        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">${pedidos.length} pedidos</div>
+      </div>
+      <button class="btn btn-brown" style="font-size:12px;" onclick="exportDayDetail('${day}',_dayDetailStore['${storeKey}']||[])">⬇ Exportar CSV</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px;">
+      ${summaryCards}
+    </div>
     <div style="overflow-x:auto;">
-      <table class="orders-table" style="min-width:650px;">
-        <thead><tr>
-          <th>Hora</th><th>Pedido</th><th>Pagamento</th>
-          <th>Bruto</th><th>Sub. loja</th><th>Com. básica</th>
-          <th>Distância / Taxa</th><th>Taxa online</th>
-          <th>Líquido (AJ)</th><th>Obs.</th>
-        </tr></thead>
+      <table class="orders-table">
+        <thead><tr>${headers}</tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr style="background:var(--cream-dark);font-weight:500;">
-          <td colspan="3" style="padding:8px 10px;font-size:12px;">Total</td>
-          <td style="padding:8px 10px;font-size:12px;">${R(totBruto)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--red)">${R(totSubLoja)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--red)">${R(totComBasica)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--red)">${R(totComDist)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--red)">${R(totTaxaOnl)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--green);font-weight:500;">${R(totLiq)}</td>
-          <td></td>
-        </tr></tfoot>
       </table>
     </div>`;
 
