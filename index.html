@@ -869,7 +869,19 @@ const FIN_DATA={keeta:{},ifood:{}};
 })();
 
 // Get imports list
-function getImports(){ return load('lv_financeiro', []); }
+function getImports(){
+  const raw = load('lv_financeiro', []);
+  // Migrate old format {keeta:{}, ifood:{}} to array
+  if(!Array.isArray(raw)){
+    const arr = [];
+    if(raw && raw.keeta) Object.entries(raw.keeta).forEach(([mo,d])=>
+      arr.push({id:'k'+mo,date:'',plat:'keeta',months:[mo],dados:{[mo]:d}}));
+    if(raw && raw.ifood) Object.entries(raw.ifood).forEach(([mo,d])=>
+      arr.push({id:'i'+mo,date:'',plat:'ifood',months:[mo],dados:{[mo]:d}}));
+    return arr;
+  }
+  return raw;
+}
 function saveImports(arr){ save('lv_financeiro', arr); }
 
 // Append new import as a record
@@ -1400,45 +1412,115 @@ function parseKeeta(wb){
 function parseIfood(wb){
   const sn=wb.SheetNames.find(s=>s.toLowerCase().includes('concilia'))||wb.SheetNames[0];
   const sheet=wb.Sheets[sn];
-  if(!sheet)throw new Error('Aba de conciliação não encontrada. Verifique se exportou o Relatório de Conciliação do iFood.');
+  if(!sheet)throw new Error('Aba de conciliação não encontrada.');
   const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
   const headers=(rows[0]||[]).map(h=>String(h||'').trim());
   const col=n=>headers.indexOf(n);
-  const iFato=col('fato_gerador'),iTipo=col('tipo_lancamento'),iValor=col('valor'),
-    iBase=col('base_calculo'),iDate=col('data_criacao_pedido_associado'),iResp=col('responsavel_transacao');
-  const byMonth={};
+  const iFato    = col('fato_gerador');
+  const iTipo    = col('tipo_lancamento');
+  const iDesc    = col('descricao_lancamento');
+  const iValor   = col('valor');
+  const iBase    = col('base_calculo');
+  const iDate    = col('data_criacao_pedido_associado');
+  const iResp    = col('responsavel_transacao');
+  const iPedido  = col('pedido_associado_ifood');
+  const iPedCurto= col('pedido_associado_ifood_curto');
+  const iPagMet  = col('metodo_pagamento');
+  const iPagBand = col('bandeira_pagamento');
+  const iCanal   = col('canal_vendas');
+  const iMotivo  = col('motivo_cancelamento');
+
+  // First pass: group all rows by order id
+  const orderMap = {};
   for(let r=1;r<rows.length;r++){
     const row=rows[r];if(!row)continue;
     if(String(row[iFato]||'').trim()!=='Venda')continue;
-    const tipo=String(row[iTipo]||'').trim();
-    const raw=row[iDate];let month='',day='';
-    if(raw instanceof Date){month=String(raw.getMonth()+1).padStart(2,'0');day=String(raw.getDate()).padStart(2,'0');}
-    else if(typeof raw==='string'&&raw.length>=10){month=raw.slice(5,7);day=raw.slice(8,10);}
-    if(!month)continue;
+    const pedidoId=String(row[iPedido]||'');
+    if(!pedidoId)continue;
+    if(!orderMap[pedidoId])orderMap[pedidoId]={
+      id:      pedidoId,
+      curto:   row[iPedCurto]||'',
+      data:    String(row[iDate]||''),
+      canal:   String(row[iCanal]||'iFood'),
+      pagMet:  String(row[iPagMet]||''),
+      pagBand: String(row[iPagBand]||''),
+      motivo:  String(row[iMotivo]||''),
+      linhas:  []
+    };
+    orderMap[pedidoId].linhas.push({
+      tipo:  String(row[iTipo]||''),
+      desc:  String(row[iDesc]||''),
+      valor: parseFloat(row[iValor])||0,
+      base:  parseFloat(row[iBase])||0,
+      resp:  String(row[iResp]||''),
+    });
+  }
+
+  // Second pass: aggregate by month/day
+  const byMonth={};
+  Object.values(orderMap).forEach(order=>{
+    const raw=order.data;
+    let month='',day='',hora='';
+    if(raw.length>=10){month=raw.slice(5,7);day=raw.slice(8,10);}
+    if(raw.length>=16){hora=raw.slice(11,16);}
+    if(!month)return;
     const dayLabel=day+'/'+month;
-    const valor=parseFloat(row[iValor])||0,base=parseFloat(row[iBase])||0;
-    const resp=String(row[iResp]||'');
+
+    // Aggregate order financials
+    let bruto=0,liquido=0,comissao=0,subIfood=0,subLoja=0;
+    order.linhas.forEach(l=>{
+      if(l.tipo==='Entrada Financeira'){bruto+=l.base;liquido+=l.valor;}
+      else if(l.tipo==='Cobrança'||l.tipo==='Retenção'){comissao+=Math.abs(l.valor);}
+      else if(l.tipo==='Subsídio'){
+        if(l.resp==='IFOOD'&&l.valor>0)subIfood+=l.valor;
+        else if(l.valor<0)subLoja+=Math.abs(l.valor);
+      }
+    });
+
     if(!byMonth[month])byMonth[month]={pedidos:0,cancelados:0,bruto:0,liquido:0,comissao:0,subsidio_ifood:0,subsidio_loja:0,taxa_efetiva:0,breakdown:[],alertas:[],dias:{}};
     const m=byMonth[month];
-    if(tipo==='Entrada Financeira'){
-      m.liquido+=valor;m.bruto+=base;
-      if(!m.dias[dayLabel])m.dias[dayLabel]={d:dayLabel,b:0,l:0,n:0};
-      m.dias[dayLabel].b+=base;m.dias[dayLabel].l+=valor;m.dias[dayLabel].n++;
-    }else if(tipo==='Cobrança'||tipo==='Retenção'){m.comissao+=Math.abs(valor);}
-    else if(tipo==='Subsídio'){if(resp==='iFood'||valor>0)m.subsidio_ifood+=Math.abs(valor);else m.subsidio_loja+=Math.abs(valor);}
-  }
+    if(bruto>0){
+      m.pedidos++;m.bruto+=bruto;m.liquido+=liquido;
+      m.comissao+=comissao;m.subsidio_ifood+=subIfood;m.subsidio_loja+=subLoja;
+      if(!m.dias[dayLabel])m.dias[dayLabel]={d:dayLabel,b:0,l:0,n:0,pedidos:[]};
+      m.dias[dayLabel].b+=bruto;
+      m.dias[dayLabel].l+=liquido;
+      m.dias[dayLabel].n++;
+      // Store order detail
+      const pagamento=[order.pagMet,order.pagBand].filter(Boolean).join(' / ');
+      const detalhes=order.linhas.map(l=>l.desc+': R$ '+l.valor.toFixed(2)).join(' | ');
+      m.dias[dayLabel].pedidos.push({
+        serie:     String(order.curto),
+        horario:   hora,
+        pagForm:   pagamento,
+        bruto:     bruto,
+        subLoja:   subLoja,
+        comBasica: comissao*0.88,
+        comDist:   0,
+        taxaOnline:comissao*0.12,
+        subKeeta:  subIfood,
+        liquido:   liquido,
+        distKm:    '',
+        nota:      detalhes,
+      });
+    }
+  });
+
   Object.entries(byMonth).forEach(([mo,m])=>{
-    m.pedidos=Object.values(m.dias).reduce((s,d)=>s+d.n,0);
     m.taxa_efetiva=m.bruto>0?parseFloat((m.comissao/m.bruto*100).toFixed(1)):0;
-    m.dias=Object.values(m.dias).sort((a,b)=>{const[da,ma]=a.d.split('/');const[db,mb]=b.d.split('/');return(+ma*100+ +da)-(+mb*100+ +db);});
+    m.dias=Object.values(m.dias).sort((a,b)=>{
+      const[da,ma]=a.d.split('/');const[db,mb]=b.d.split('/');
+      return(+ma*100+ +da)-(+mb*100+ +db);
+    });
+    // Breakdown from actual data
+    const comPct = m.bruto>0?(m.comissao/m.bruto*100).toFixed(1):'0';
     m.breakdown=[
-      {label:'Comissão iFood (~23%)',val:'R$ '+Math.round(m.comissao*.9),sub:'comissão principal',neg:true},
-      {label:'Taxa de transação (~3%)',val:'R$ '+Math.round(m.comissao*.1),sub:'pagamento eletrônico',neg:true},
+      {label:'Comissão iFood ('+comPct+'%)',val:'R$ '+Math.round(m.comissao),sub:'comissão + taxas',neg:true},
     ];
     if(m.subsidio_loja>0)m.breakdown.push({label:'Subsídio loja',val:'R$ '+m.subsidio_loja.toFixed(0),sub:'promoções da loja',neg:true});
     if(m.subsidio_ifood>0)m.breakdown.push({label:'Subsídio iFood',val:'R$ '+m.subsidio_ifood.toFixed(0),sub:'iFood cobriu promoções',neg:false});
     m.alertas=[];
-    if(m.taxa_efetiva>26)m.alertas.push({tipo:'red',msg:'Taxa efetiva acima de 26% ('+m.taxa_efetiva+'%). Revise os descontos ativos.'});
+    if(m.taxa_efetiva>26)m.alertas.push({tipo:'red',msg:'Taxa efetiva: '+m.taxa_efetiva+'% — acima de 26%. Revise os descontos.'});
     if(m.subsidio_ifood>0)m.alertas.push({tipo:'green',msg:'iFood cobriu R$ '+m.subsidio_ifood.toFixed(2)+' em subsídios. Mantenha as campanhas ativas.'});
   });
   return byMonth;
