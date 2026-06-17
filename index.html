@@ -316,7 +316,10 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
 
 <!-- PRECIFICAÇÃO -->
 <div class="page" id="page-pricing">
-  <p class="section-title">Calculadora de Precificação</p>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+    <p class="section-title" style="margin:0;">Calculadora de Precificação</p>
+    <button class="btn btn-brown" onclick="exportPrecificacao()" style="margin-top:4px;">⬇ Exportar CSV</button>
+  </div>
   <p class="section-sub">Edite quantidades e preços — tudo salvo automaticamente.</p>
   <div class="pricing-top">
     <div class="param-card">
@@ -2480,6 +2483,80 @@ function exportIngredientes(){
   a.click();
   URL.revokeObjectURL(url);
   showToast('CSV exportado!');
+}
+
+
+function exportPrecificacao(){
+  const fixo   = params.fixo   || 0;
+  const vendas = params.vendas || 150;
+  const markup = params.markup || 2;
+  const ifoodTax = (params.ifood || 26) / 100;
+  const keetaTax = (params.keeta || 25) / 100;
+  const indireto = vendas > 0 ? fixo / vendas : 0;
+  const R = v => parseFloat(v||0).toFixed(2);
+
+  const rows = [];
+
+  // Header info
+  rows.push('PRECIFICACAO LA VERA');
+  rows.push('Custo fixo mensal: R$ ' + R(fixo) + ' | Pizzas/mes: ' + vendas + ' | Markup: ' + markup + 'x | Taxa iFood: ' + (ifoodTax*100).toFixed(0) + '% | Taxa Keeta: ' + (keetaTax*100).toFixed(0) + '%');
+  rows.push('');
+
+  pizzas.forEach(pizza => {
+    const custIngr = calcPizzaCost(pizza);
+    const custTotal = custIngr + indireto;
+    const precoBase = custTotal * markup;
+    const precoIfood = precoBase / (1 - ifoodTax);
+    const precoKeeta = precoBase / (1 - keetaTax);
+    const desejado = pizza.desejado || 0;
+    const lucroIf = desejado > 0 ? desejado * (1 - ifoodTax) - custTotal : '';
+    const lucroKe = desejado > 0 ? desejado * (1 - keetaTax) - custTotal : '';
+
+    rows.push('PIZZA: ' + pizza.nome);
+    rows.push('Ingrediente,Qtd usada,Unidade,Custo unitario (R$),Custo total (R$)');
+
+    pizza.ingredientes.forEach(item => {
+      const ingr = ingredients.find(i => i.nome === item.nome);
+      const custoUnit = ingr ? (ingr.custo_base || ingr.preco / (ingr.qtd_base || ingr.qtd || 1)) : 0;
+      const custoTotal = custoUnit * (item.qtd || 0);
+      const unBase = ingr ? (ingr.un_base || 'g') : 'g';
+      rows.push([
+        '"' + item.nome + '"',
+        item.qtd || 0,
+        unBase,
+        R(custoUnit),
+        R(custoTotal)
+      ].join(','));
+    });
+
+    rows.push(',,,,');
+    rows.push('Custo ingredientes,R$ ' + R(custIngr));
+    rows.push('Custo indireto,R$ ' + R(indireto));
+    rows.push('Custo total,R$ ' + R(custTotal));
+    rows.push('Preco minimo (' + markup + 'x),R$ ' + R(precoBase));
+    rows.push('Preco sugerido iFood,R$ ' + R(precoIfood));
+    rows.push('Preco sugerido Keeta,R$ ' + R(precoKeeta));
+    if(desejado > 0){
+      rows.push('Preco desejado,R$ ' + R(desejado));
+      rows.push('Lucro liquido iFood,R$ ' + R(lucroIf));
+      rows.push('Lucro liquido Keeta,R$ ' + R(lucroKe));
+    }
+    rows.push('');
+    rows.push('---');
+    rows.push('');
+  });
+
+  const sep = String.fromCharCode(10);
+  const csv = rows.join(sep);
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  const today = new Date().toLocaleDateString('pt-BR').replace(/[/]/g,'-');
+  a.download = 'precificacao_lavera_' + today + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Precificacao exportada!');
 }
 
 
