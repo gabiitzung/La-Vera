@@ -2813,6 +2813,28 @@ Responda SOMENTE com array JSON válido (sem markdown), cada item com:
 }
 
 
+function addIngredient(){
+  const nome       = document.getElementById('new-ingr-name').value.trim();
+  const preco      = parseFloat(document.getElementById('new-ingr-preco').value)||0;
+  const qtd_compra = parseFloat(document.getElementById('new-ingr-qtd-compra').value)||1;
+  const un_compra  = document.getElementById('new-ingr-un-compra').value||'g';
+  if(!nome){showToast('Informe o nome do ingrediente.');return;}
+  if(!qtd_compra){showToast('Informe a quantidade comprada.');return;}
+  const uc = un_compra.toLowerCase();
+  const qtd_base   = uc==='kg' ? qtd_compra*1000 : qtd_compra;
+  const un_base    = uc==='un' ? 'un' : 'g';
+  const custo_base = qtd_base > 0 ? preco/qtd_base : 0;
+  ingredients.push({nome,preco,qtd_compra,un_compra,qtd_base,un_base,custo_base,obs:''});
+  save('lv_ingredients',ingredients);
+  document.getElementById('new-ingr-name').value='';
+  document.getElementById('new-ingr-preco').value='';
+  document.getElementById('new-ingr-qtd-compra').value='';
+  document.getElementById('new-ingr-un-compra').value='g';
+  renderIngredients();
+  showToast('Ingrediente adicionado!');
+}
+
+
 // ══════════ UTILS ══════════
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
@@ -2998,20 +3020,17 @@ function calcPricing(){
         <div style="font-size:20px;font-family:'Playfair Display',serif;color:var(--brown);margin-bottom:12px;">${R(minIfood)}</div>
         <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Qual preço você quer cobrar?</div>
         <input type="number" id="desired-ifood" value="${dIfood||''}" placeholder="R$ 0,00" step="0.50" min="0"
-          oninput="updateDesejadoPlat(${currentPizzaIdx},'ifood',this.value)"
+          onchange="updateDesejadoPlat(${currentPizzaIdx},'ifood',this.value)"
+          onblur="updateDesejadoPlat(${currentPizzaIdx},'ifood',this.value)"
           style="width:100%;border:2px solid ${dIfood?(lIf>=0?'var(--green)':'var(--red)'):'var(--cream-border)'};border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);background:var(--cream);text-align:center;margin-bottom:8px;">
-        <div style="font-size:12px;min-height:20px;">${dIfood?arrow(dIfood,minIfood):''}</div>
-        ${dIfood&&lIf!==null?`
-        <div style="margin-top:8px;background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div class="result-block">
-            <div class="result-label">Lucro líquido</div>
-            <div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lIf,dIfood)}">${R(lIf)}</div>
-          </div>
-          <div class="result-block">
-            <div class="result-label">Margem</div>
-            <div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lIf,dIfood)}">${P(lIf/dIfood*100)}</div>
-          </div>
-        </div>`:''}
+        <div id="pricing-ifood-result">
+          <div style="font-size:12px;min-height:20px;">${dIfood?arrow(dIfood,minIfood):''}</div>
+          ${dIfood&&lIf!==null?`
+          <div style="background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <div class="result-block"><div class="result-label">Lucro líquido</div><div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lIf,dIfood)}">${R(lIf)}</div></div>
+            <div class="result-block"><div class="result-label">Margem</div><div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lIf,dIfood)}">${P(lIf/dIfood*100)}</div></div>
+          </div>`:''}
+        </div>
       </div>
 
       <!-- Keeta -->
@@ -3021,20 +3040,17 @@ function calcPricing(){
         <div style="font-size:20px;font-family:'Playfair Display',serif;color:var(--brown);margin-bottom:12px;">${R(minKeeta)}</div>
         <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Qual preço você quer cobrar?</div>
         <input type="number" id="desired-keeta" value="${dKeeta||''}" placeholder="R$ 0,00" step="0.50" min="0"
-          oninput="updateDesejadoPlat(${currentPizzaIdx},'keeta',this.value)"
+          onchange="updateDesejadoPlat(${currentPizzaIdx},'keeta',this.value)"
+          onblur="updateDesejadoPlat(${currentPizzaIdx},'keeta',this.value)"
           style="width:100%;border:2px solid ${dKeeta?(lKe>=0?'var(--green)':'var(--red)'):'var(--cream-border)'};border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);background:var(--cream);text-align:center;margin-bottom:8px;">
-        <div style="font-size:12px;min-height:20px;">${dKeeta?arrow(dKeeta,minKeeta):''}</div>
-        ${dKeeta&&lKe!==null?`
-        <div style="margin-top:8px;background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div class="result-block">
-            <div class="result-label">Lucro líquido</div>
-            <div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lKe,dKeeta)}">${R(lKe)}</div>
-          </div>
-          <div class="result-block">
-            <div class="result-label">Margem</div>
-            <div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lKe,dKeeta)}">${P(lKe/dKeeta*100)}</div>
-          </div>
-        </div>`:''}
+        <div id="pricing-keeta-result">
+          <div style="font-size:12px;min-height:20px;">${dKeeta?arrow(dKeeta,minKeeta):''}</div>
+          ${dKeeta&&lKe!==null?`
+          <div style="background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <div class="result-block"><div class="result-label">Lucro líquido</div><div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lKe,dKeeta)}">${R(lKe)}</div></div>
+            <div class="result-block"><div class="result-label">Margem</div><div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lKe,dKeeta)}">${P(lKe/dKeeta*100)}</div></div>
+          </div>`:''}
+        </div>
       </div>
     </div>
 
@@ -3048,10 +3064,78 @@ function updateDesejadoPlat(pi, plat, val){
   const v = parseFloat(val) || 0;
   if(plat === 'ifood') pizzas[pi].desejadoIfood = v;
   else pizzas[pi].desejadoKeeta = v;
-  // Also update legacy desejado as average
   pizzas[pi].desejado = v;
   save('lv_pizzas', pizzas);
-  calcPricing();
+  // Recalc without re-rendering the inputs (avoid cursor reset)
+  calcPricingResult();
+}
+
+function calcPricingResult(){
+  // Recalculates only the result cards without touching the input fields
+  const fixo   = +document.getElementById('p-fixo').value   || params.fixo;
+  const vendas = +document.getElementById('p-vendas').value || params.vendas;
+  const markup = +document.getElementById('p-markup').value || params.markup;
+  const ifoodTax = (+document.getElementById('p-ifood').value || params.ifood) / 100;
+  const keetaTax = (+document.getElementById('p-keeta').value || params.keeta) / 100;
+  const outras   = (+document.getElementById('p-outras').value || params.outras) / 100;
+  const indireto = vendas > 0 ? fixo / vendas : 0;
+  const pizza    = pizzas[currentPizzaIdx];
+  const custIngr = calcPizzaCost(pizza);
+  const custTotal= custIngr + indireto;
+  const precoMin = custTotal * markup;
+  const minIfood = precoMin / (1 - ifoodTax - outras);
+  const minKeeta = precoMin / (1 - keetaTax - outras);
+  const dIfood = pizza.desejadoIfood || 0;
+  const dKeeta = pizza.desejadoKeeta || 0;
+  const R = v => 'R$ ' + parseFloat(v||0).toFixed(2).replace('.',',');
+  const P = v => parseFloat(v).toFixed(1) + '%';
+
+  // Update iFood result card
+  const ifEl = document.getElementById('pricing-ifood-result');
+  if(ifEl && dIfood){
+    const lIf = dIfood * (1 - ifoodTax - outras) - custTotal;
+    const ok = dIfood >= minIfood;
+    ifEl.innerHTML = `
+      <div style="font-size:12px;min-height:20px;margin-bottom:6px;">
+        ${ok?'<span style="color:var(--green)">✓ acima do mínimo</span>':'<span style="color:var(--red)">⚠️ abaixo do mínimo</span>'}
+      </div>
+      <div style="background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="result-block">
+          <div class="result-label">Lucro líquido</div>
+          <div style="font-size:18px;font-family:'Playfair Display',serif;color:${lIf>=0?'var(--green)':'var(--red)'}">${R(lIf)}</div>
+        </div>
+        <div class="result-block">
+          <div class="result-label">Margem</div>
+          <div style="font-size:18px;font-family:'Playfair Display',serif;color:${lIf>=0?'var(--green)':'var(--red)'}">${P(lIf/dIfood*100)}</div>
+        </div>
+      </div>`;
+    // Update border color of input
+    const inp = document.getElementById('desired-ifood');
+    if(inp) inp.style.borderColor = ok ? 'var(--green)' : 'var(--red)';
+  }
+
+  // Update Keeta result card
+  const keEl = document.getElementById('pricing-keeta-result');
+  if(keEl && dKeeta){
+    const lKe = dKeeta * (1 - keetaTax - outras) - custTotal;
+    const ok = dKeeta >= minKeeta;
+    keEl.innerHTML = `
+      <div style="font-size:12px;min-height:20px;margin-bottom:6px;">
+        ${ok?'<span style="color:var(--green)">✓ acima do mínimo</span>':'<span style="color:var(--red)">⚠️ abaixo do mínimo</span>'}
+      </div>
+      <div style="background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="result-block">
+          <div class="result-label">Lucro líquido</div>
+          <div style="font-size:18px;font-family:'Playfair Display',serif;color:${lKe>=0?'var(--green)':'var(--red)'}">${R(lKe)}</div>
+        </div>
+        <div class="result-block">
+          <div class="result-label">Margem</div>
+          <div style="font-size:18px;font-family:'Playfair Display',serif;color:${lKe>=0?'var(--green)':'var(--red)'}">${P(lKe/dKeeta*100)}</div>
+        </div>
+      </div>`;
+    const inp = document.getElementById('desired-keeta');
+    if(inp) inp.style.borderColor = ok ? 'var(--green)' : 'var(--red)';
+  }
 }
 
 function addToMenuFromPricing(idx){
