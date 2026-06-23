@@ -2835,6 +2835,15 @@ function addIngredient(){
 }
 
 
+function deleteIngredient(i){
+  if(!confirm('Excluir "'+ingredients[i].nome+'"?')) return;
+  ingredients.splice(i, 1);
+  save('lv_ingredients', ingredients);
+  renderIngredients();
+  showToast('Ingrediente excluído.');
+}
+
+
 // ══════════ UTILS ══════════
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
@@ -2921,6 +2930,9 @@ function renderIngredients(){
         <button onclick="updateIngr(${i},'obs','${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}')"
           title="Marcar hoje" style="border:none;background:none;cursor:pointer;font-size:13px;padding:0 2px;vertical-align:middle;">📅</button>
       </td>
+      <td><button onclick="deleteIngredient(${i})" title="Excluir ingrediente"
+        style="border:none;background:none;cursor:pointer;color:var(--text-light);font-size:16px;padding:0 4px;"
+        onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-light)'">✕</button></td>
     </tr>`;
   }).join('');
 }
@@ -3022,7 +3034,12 @@ function calcPricing(){
         <input type="number" id="desired-ifood" value="${dIfood||''}" placeholder="R$ 0,00" step="0.50" min="0"
           onchange="updateDesejadoPlat(${currentPizzaIdx},'ifood',this.value)"
           onblur="updateDesejadoPlat(${currentPizzaIdx},'ifood',this.value)"
-          style="width:100%;border:2px solid ${dIfood?(lIf>=0?'var(--green)':'var(--red)'):'var(--cream-border)'};border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);background:var(--cream);text-align:center;margin-bottom:8px;">
+          onkeydown="if(event.key==='Enter')updateDesejadoPlat(${currentPizzaIdx},'ifood',this.value)"
+          style="width:100%;border:2px solid ${dIfood?(lIf>=0?'var(--green)':'var(--red)'):'var(--cream-border)'};border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);background:var(--cream);text-align:center;margin-bottom:6px;">
+        <button onclick="updateDesejadoPlat(${currentPizzaIdx},'ifood',document.getElementById('desired-ifood').value)"
+          style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--cream-border);background:var(--cream-dark);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--brown);margin-bottom:8px;">
+          Calcular →
+        </button>
         <div id="pricing-ifood-result">
           <div style="font-size:12px;min-height:20px;">${dIfood?arrow(dIfood,minIfood):''}</div>
           ${dIfood&&lIf!==null?`
@@ -3042,7 +3059,12 @@ function calcPricing(){
         <input type="number" id="desired-keeta" value="${dKeeta||''}" placeholder="R$ 0,00" step="0.50" min="0"
           onchange="updateDesejadoPlat(${currentPizzaIdx},'keeta',this.value)"
           onblur="updateDesejadoPlat(${currentPizzaIdx},'keeta',this.value)"
-          style="width:100%;border:2px solid ${dKeeta?(lKe>=0?'var(--green)':'var(--red)'):'var(--cream-border)'};border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);background:var(--cream);text-align:center;margin-bottom:8px;">
+          onkeydown="if(event.key==='Enter')updateDesejadoPlat(${currentPizzaIdx},'keeta',this.value)"
+          style="width:100%;border:2px solid ${dKeeta?(lKe>=0?'var(--green)':'var(--red)'):'var(--cream-border)'};border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);background:var(--cream);text-align:center;margin-bottom:6px;">
+        <button onclick="updateDesejadoPlat(${currentPizzaIdx},'keeta',document.getElementById('desired-keeta').value)"
+          style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--cream-border);background:var(--cream-dark);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--brown);margin-bottom:8px;">
+          Calcular →
+        </button>
         <div id="pricing-keeta-result">
           <div style="font-size:12px;min-height:20px;">${dKeeta?arrow(dKeeta,minKeeta):''}</div>
           ${dKeeta&&lKe!==null?`
