@@ -222,6 +222,9 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
     <button class="sidebar-btn" onclick="showPage('financial',this)" data-page="financial">
       <span class="sb-icon">📊</span> Visão Geral
     </button>
+    <button class="sidebar-btn" onclick="showPage('projecao',this)" data-page="projecao">
+      <span class="sb-icon">📈</span> Projeção
+    </button>
     <button class="sidebar-btn" onclick="showPage('pricing',this)" data-page="pricing">
       <span class="sb-icon">💰</span> Precificação
     </button>
@@ -240,11 +243,6 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
     </button>
   </div>
   <div class="sidebar-section">
-    <button class="sidebar-btn" onclick="showPage('calendar',this)" data-page="calendar">
-      <span class="sb-icon">📅</span> Rede Social
-    </button>
-  </div>
-  <div class="sidebar-section">
     <button class="sidebar-btn" onclick="showPage('cardapio',this)" data-page="cardapio">
       <span class="sb-icon">🍽️</span> Cardápio
     </button>
@@ -252,16 +250,37 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
 </aside>
 <main>
 
-<!-- CALENDÁRIO -->
+<!-- CALENDÁRIO + BANCO DE IDEIAS -->
 <div class="page" id="page-calendar">
-  <p class="section-title">Calendário de Posts</p>
-  <p class="section-sub">Quarta a domingo. Clique num post para editar, ou + Post para adicionar.</p>
-  <div class="week-nav">
-    <button onclick="changeWeek(-1)">‹</button>
-    <span class="week-label" id="week-label"></span>
-    <button onclick="changeWeek(1)">›</button>
+  <div style="display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid var(--cream-border);padding-bottom:0;">
+    <button class="cal-tab active" id="cal-tab-calendario" onclick="switchCalTab('calendario')">📅 Calendário</button>
+    <button class="cal-tab" id="cal-tab-banco" onclick="switchCalTab('banco')">💡 Banco de Ideias</button>
   </div>
-  <div class="cal-grid" id="cal-grid"></div>
+
+  <!-- CALENDÁRIO -->
+  <div id="cal-panel-calendario">
+    <p class="section-sub" style="margin-bottom:16px;">Quarta a domingo. Clique num post para editar, ou + Post para adicionar.</p>
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">‹</button>
+      <span class="week-label" id="week-label"></span>
+      <button onclick="changeWeek(1)">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+  <!-- BANCO DE IDEIAS -->
+  <div id="cal-panel-banco" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <p class="section-sub" style="margin:0;">Ideias prontas para usar no calendário. Clique em + Usar para agendar.</p>
+      <button class="btn btn-green" id="gen-more-btn" onclick="generateMoreIdeas()">✨ Gerar novas ideias com IA</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;" id="banco-format-tabs">
+      <button class="banco-tab active" data-format="Reels" onclick="switchBancoTab('Reels',this)">🎬 Reels</button>
+      <button class="banco-tab" data-format="Feed" onclick="switchBancoTab('Feed',this)">📸 Feed</button>
+      <button class="banco-tab" data-format="Stories" onclick="switchBancoTab('Stories',this)">📱 Stories</button>
+    </div>
+    <div id="banco-content"></div>
+  </div>
 </div>
 
 <!-- FINANCEIRO -->
@@ -316,14 +335,117 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
 
 <!-- PRECIFICAÇÃO -->
 <div class="page" id="page-pricing">
-  <p class="section-title">Calculadora de Precificação</p>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+    <p class="section-title" style="margin:0;">Calculadora de Precificação</p>
+    <button class="btn btn-brown" onclick="exportPrecificacao()" style="margin-top:4px;">⬇ Exportar CSV</button>
+  </div>
   <p class="section-sub">Edite quantidades e preços — tudo salvo automaticamente.</p>
+
+  <!-- Glossário colapsável -->
+  <div style="margin-bottom:16px;">
+    <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.gloss-arrow').textContent=this.nextElementSibling.style.display==='none'?'▸':'▾';"
+      style="width:100%;text-align:left;background:#fff;border:1px solid var(--cream-border);border-radius:10px;padding:12px 16px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--brown);display:flex;justify-content:space-between;align-items:center;">
+      📚 Glossário — o que significa cada termo?
+      <span class="gloss-arrow" style="font-size:12px;color:var(--text-light);">▸</span>
+    </button>
+    <div style="display:none;background:#fff;border:1px solid var(--cream-border);border-top:none;border-radius:0 0 10px 10px;padding:16px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+
+        <div style="background:var(--cream-dark);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:4px;">💰 Markup</div>
+          <div style="font-size:12px;color:var(--text-mid);line-height:1.7;">
+            É o número pelo qual você multiplica o custo para definir o preço mínimo de venda.<br>
+            <strong>Exemplo:</strong> pizza custa R$ 30 e seu markup é 2× → preço mínimo = R$ 60.<br>
+            Quanto maior o markup, maior sua margem de lucro.
+          </div>
+        </div>
+
+        <div style="background:var(--cream-dark);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:4px;">🏠 Custo fixo</div>
+          <div style="font-size:12px;color:var(--text-mid);line-height:1.7;">
+            O que você paga todo mês, independente de vender ou não.<br>
+            <strong>Exemplos:</strong> contador, aluguel, internet, gás.<br>
+            Esse valor é dividido pelo número de pizzas vendidas — cada pizza "carrega" uma parte desse custo.
+          </div>
+        </div>
+
+        <div style="background:var(--cream-dark);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:4px;">🧺 Custo variável (ingredientes)</div>
+          <div style="font-size:12px;color:var(--text-mid);line-height:1.7;">
+            O que aumenta conforme você vende mais.<br>
+            <strong>Exemplos:</strong> farinha, queijo, tomate, embalagem.<br>
+            Quanto mais pizzas você faz, mais gasta em ingredientes.
+          </div>
+        </div>
+
+        <div style="background:var(--cream-dark);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:4px;">🔴 Preço mínimo</div>
+          <div style="font-size:12px;color:var(--text-mid);line-height:1.7;">
+            O menor preço que você pode cobrar sem ter prejuízo.<br>
+            Abaixo disso, você está pagando para trabalhar.<br>
+            <strong>Fórmula:</strong> (ingredientes + custo fixo por pizza) × markup → dividido pelas taxas da plataforma.
+          </div>
+        </div>
+
+        <div style="background:var(--cream-dark);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:4px;">📊 Margem de lucro</div>
+          <div style="font-size:12px;color:var(--text-mid);line-height:1.7;">
+            A % do preço que vira lucro depois de pagar tudo.<br>
+            <strong>Exemplo:</strong> pizza de R$ 80 com margem de 20% → R$ 16 de lucro.<br>
+            Margem abaixo de 15% é sinal de atenção.
+          </div>
+        </div>
+
+        <div style="background:var(--cream-dark);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:4px;">📱 Taxa das plataformas</div>
+          <div style="font-size:12px;color:var(--text-mid);line-height:1.7;">
+            O % que o Keeta e o iFood cobram sobre cada pedido.<br>
+            <strong>Keeta:</strong> ~25% &nbsp;·&nbsp; <strong>iFood:</strong> ~26%<br>
+            É por isso que o preço mínimo no app é maior que o preço mínimo bruto.
+          </div>
+        </div>
+
+      </div>
+      <div style="margin-top:12px;padding:10px 12px;background:var(--green-soft);border-radius:8px;font-size:12px;color:var(--green);line-height:1.7;">
+        💡 <strong>Dica:</strong> Um preço saudável cobre ingredientes + custo fixo + taxa da plataforma <em>e ainda sobra lucro</em>. Se o preço sugerido estiver muito acima do mercado, revise os custos fixos ou aumente o volume de vendas para diluir o custo por pizza.
+      </div>
+    </div>
+  </div>
   <div class="pricing-top">
     <div class="param-card">
       <div style="font-weight:500;color:var(--brown);margin-bottom:12px;font-size:13px;">⚙️ Parâmetros gerais</div>
-      <div class="param-row"><label>Custo fixo mensal (R$)</label><input type="number" id="p-fixo" value="2199" oninput="saveParams();calcPricing()"></div>
-      <div class="param-row"><label>Pizzas vendidas/mês</label><input type="number" id="p-vendas" value="150" oninput="saveParams();calcPricing()"></div>
-      <div class="param-row"><label>Markup</label><input type="number" id="p-markup" value="2" step="0.1" oninput="saveParams();calcPricing()"><span class="param-label-inline">× custo total</span></div>
+
+      <!-- Custo fixo — vem de Custos Indiretos automaticamente -->
+      <div class="param-row">
+        <label>Custo fixo mensal (R$)
+          <span style="font-size:10px;color:var(--text-light);font-weight:400;display:block;margin-top:1px;">Vem da aba Custos Indiretos automaticamente</span>
+        </label>
+        <input type="number" id="p-fixo" value="2199" oninput="saveParams();calcPricing()"
+          style="background:var(--cream-dark);" readonly title="Calculado automaticamente a partir dos Custos Indiretos">
+        <a onclick="showPage('custos',document.querySelector('.sidebar-btn[data-page=custos]'))" 
+           style="font-size:10px;color:var(--brown);cursor:pointer;text-decoration:underline;white-space:nowrap;">✏️ Editar</a>
+      </div>
+
+      <!-- Pizzas vendidas/mês — com sugestão -->
+      <div class="param-row">
+        <label>Pizzas vendidas/mês
+          <span id="vendas-hint" style="font-size:10px;color:var(--text-light);font-weight:400;display:block;margin-top:1px;">Quantas pizzas você vende em média por mês</span>
+        </label>
+        <input type="number" id="p-vendas" value="150" oninput="saveParams();calcPricing();updateVendasHint()">
+      </div>
+
+      <!-- Markup — com legenda explicativa -->
+      <div class="param-row">
+        <label>Markup (multiplicador)
+          <span style="font-size:10px;color:var(--text-light);font-weight:400;display:block;margin-top:1px;">Quantas vezes o custo total vira preço mínimo</span>
+        </label>
+        <input type="number" id="p-markup" value="2" step="0.1" min="1" oninput="saveParams();calcPricing();updateMarkupHint()">
+      </div>
+      <div id="markup-hint" style="background:var(--cream-dark);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-mid);line-height:1.7;margin-top:4px;">
+        <strong style="color:var(--brown);">Markup 2×</strong> significa que o preço mínimo é o dobro do custo.<br>
+        Ex: pizza que custa R$ 30 → preço mínimo de R$ 60 (antes das taxas).<br>
+        <span style="color:var(--text-light);">Quanto maior o markup, maior sua margem de segurança.</span>
+      </div>
     </div>
     <div class="param-card">
       <div style="font-weight:500;color:var(--brown);margin-bottom:12px;font-size:13px;">📱 Taxas de plataforma</div>
@@ -525,6 +647,109 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
     <div id="hist-report-content">
       <p style="color:var(--text-light);font-size:13px;">Selecione um período e clique em Filtrar para gerar o relatório.</p>
     </div>
+  </div>
+</div>
+
+<!-- PROJEÇÃO -->
+<div class="page" id="page-projecao">
+  <p class="section-title">Projeção de Vendas</p>
+  <p class="section-sub">Baseada nos dados reais importados. Ajuste os parâmetros para simular cenários.</p>
+
+  <!-- Dados base -->
+  <div id="proj-base-alert" style="background:var(--amber-soft);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--amber);margin-bottom:16px;display:none;">
+    ⚠️ Importe dados financeiros do Keeta ou iFood para ativar a projeção automática.
+  </div>
+
+  <!-- Projeção automática -->
+  <div class="card" style="border-top:3px solid var(--green);margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div class="card-title" style="margin:0;">📊 Projeção automática — próximo mês</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="font-size:12px;color:var(--text-mid);">Crescimento esperado:</label>
+        <input type="number" id="proj-growth" value="0" step="5" min="-50" max="200"
+          style="width:70px;border:1px solid var(--cream-border);border-radius:6px;padding:5px 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--cream);"
+          oninput="renderProjecao()">
+        <span style="font-size:13px;color:var(--text-mid);">%</span>
+      </div>
+    </div>
+    <div id="proj-auto-content">
+      <p style="color:var(--text-light);font-size:13px;">Importe dados financeiros para ver a projeção.</p>
+    </div>
+  </div>
+
+  <!-- Simulador -->
+  <div class="card" style="border-top:3px solid var(--brown);margin-bottom:16px;">
+    <div class="card-title">🎯 Simulador de cenários</div>
+    <p style="font-size:13px;color:var(--text-mid);margin-bottom:16px;">Defina uma meta e veja o que precisa vender para chegar lá.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px;">
+      <div>
+        <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Meta de faturamento bruto (R$)</label>
+        <input type="number" id="sim-meta-bruto" placeholder="Ex: 20000" step="500"
+          style="width:100%;border:1.5px solid var(--brown);border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);background:var(--cream);"
+          oninput="renderSimulador()">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Ticket médio esperado (R$)</label>
+        <input type="number" id="sim-ticket" placeholder="Ex: 95" step="5"
+          style="width:100%;border:1px solid var(--cream-border);border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);background:var(--cream);"
+          oninput="renderSimulador()">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Dias operacionais no mês</label>
+        <input type="number" id="sim-dias" value="20" step="1" min="1" max="31"
+          style="width:100%;border:1px solid var(--cream-border);border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);background:var(--cream);"
+          oninput="renderSimulador()">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Split Keeta / iFood (%)</label>
+        <div style="display:flex;gap:8px;align-items:center;padding-top:6px;">
+          <span style="font-size:12px;color:#FF6B35;font-weight:500;">Keeta</span>
+          <input type="number" id="sim-split-keeta" value="70" step="5" min="0" max="100"
+            style="width:70px;border:1px solid var(--cream-border);border-radius:6px;padding:8px;font-size:13px;background:var(--cream);"
+            oninput="document.getElementById('sim-split-ifood').value=100-this.value;renderSimulador()">
+          <span style="font-size:12px;color:var(--text-light);">/ iFood</span>
+          <input type="number" id="sim-split-ifood" value="30" step="5" min="0" max="100"
+            style="width:70px;border:1px solid var(--cream-border);border-radius:6px;padding:8px;font-size:13px;background:var(--cream);"
+            oninput="document.getElementById('sim-split-keeta').value=100-this.value;renderSimulador()">
+        </div>
+      </div>
+    </div>
+
+    <div id="sim-content">
+      <p style="color:var(--text-light);font-size:13px;">Preencha uma meta de faturamento para ver a simulação.</p>
+    </div>
+  </div>
+
+  <!-- Calculadora de Operação -->
+  <div class="card" style="border-top:3px solid var(--brown);margin-bottom:16px;">
+    <div class="card-title">🧮 Calculadora de Operação</div>
+    <p style="font-size:13px;color:var(--text-mid);margin-bottom:16px;">Escolha o que você quer saber e preencha só um número.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;" id="calc-questions">
+      <button class="calc-q-btn active" onclick="selectCalcQ('pizzas',this)">
+        🍕 Se eu vender <u>X pizzas</u>, quanto vou faturar?
+      </button>
+      <button class="calc-q-btn" onclick="selectCalcQ('meta',this)">
+        🎯 Para faturar <u>R$ X</u>, quantas pizzas preciso vender?
+      </button>
+      <button class="calc-q-btn" onclick="selectCalcQ('ticket',this)">
+        💰 Qual valor médio por pedido eu preciso cobrar para atingir minha meta?
+      </button>
+      <button class="calc-q-btn" onclick="selectCalcQ('custo',this)">
+        ✂️ O que muda no meu lucro se eu reduzir os custos fixos?
+      </button>
+    </div>
+
+    <div id="calc-input-area"></div>
+    <div id="calc-result-area"></div>
+  </div>
+
+  <!-- Break-even -->
+  <div class="card" style="border-top:3px solid var(--blue);">
+    <div class="card-title">⚖️ Ponto de equilíbrio (break-even)</div>
+    <p style="font-size:13px;color:var(--text-mid);margin-bottom:16px;">Quantas pizzas precisa vender por mês para cobrir todos os custos.</p>
+    <div id="breakeven-content"></div>
   </div>
 </div>
 
@@ -828,10 +1053,12 @@ async function syncFromSupabase(){
 const DATA_VERSION=5;
 const savedVersion=load('lv_data_version',0);
 if(savedVersion<DATA_VERSION){
+  // Pizzas — merge defaults without overwriting existing
   const sp=load('lv_pizzas',[]);const sn=new Set(sp.map(p=>p.nome));
   save('lv_pizzas',[...sp,...DEFAULT_PIZZAS.filter(p=>!sn.has(p.nome))]);
+
+  // Ingredients — migrate old format fields + merge new defaults
   const si=load('lv_ingredients',[]);const sin=new Set(si.map(i=>i.nome));
-  // Migrate old format: add new fields if missing
   const migratedIngr=si.map(i=>({
     ...i,
     qtd_compra: i.qtd_compra ?? i.qtd ?? 1,
@@ -841,10 +1068,21 @@ if(savedVersion<DATA_VERSION){
     custo_base: i.custo_base ?? (i.preco / (i.qtd||1)),
     obs:        i.obs        ?? '',
   }));
-  // Merge with defaults for any new ingredients
   const newIngr=DEFAULT_INGREDIENTS.filter(i=>!sin.has(i.nome));
   save('lv_ingredients',[...migratedIngr,...newIngr]);
-  if(!load('lv_calendar',[]).length)save('lv_calendar',DEFAULT_CALENDAR_POSTS);
+
+  // Calendar — only set defaults if empty
+  if(!load('lv_calendar',[]).length) save('lv_calendar',DEFAULT_CALENDAR_POSTS);
+
+  // Menu — NEVER overwrite existing data on migration
+  // lv_menu is preserved as-is
+
+  // Custos — NEVER overwrite existing data on migration
+  // lv_custos is preserved as-is
+
+  // Params — NEVER overwrite existing data on migration
+  // lv_params is preserved as-is
+
   save('lv_data_version',DATA_VERSION);
 }
 
@@ -869,7 +1107,19 @@ const FIN_DATA={keeta:{},ifood:{}};
 })();
 
 // Get imports list
-function getImports(){ return load('lv_financeiro', []); }
+function getImports(){
+  const raw = load('lv_financeiro', []);
+  // Migrate old format {keeta:{}, ifood:{}} to array
+  if(!Array.isArray(raw)){
+    const arr = [];
+    if(raw && raw.keeta) Object.entries(raw.keeta).forEach(([mo,d])=>
+      arr.push({id:'k'+mo,date:'',plat:'keeta',months:[mo],dados:{[mo]:d}}));
+    if(raw && raw.ifood) Object.entries(raw.ifood).forEach(([mo,d])=>
+      arr.push({id:'i'+mo,date:'',plat:'ifood',months:[mo],dados:{[mo]:d}}));
+    return arr;
+  }
+  return raw;
+}
 function saveImports(arr){ save('lv_financeiro', arr); }
 
 // Append new import as a record
@@ -906,6 +1156,7 @@ function removeImport(id){
   const imports = getImports().filter(i => i.id !== id);
   saveImports(imports);
   rebuildFinData(imports);
+  renderFinImportsBar();
   renderHistorico();
   renderFinancial();
   showToast('Import removido.');
@@ -923,6 +1174,7 @@ function showPage(id,btn){
   if(id==='financial')renderFinancial();
   if(id==='custos')renderCustos();
   if(id==='cardapio')renderCardapio();
+  if(id==='projecao'){renderProjecao();renderCalcInput();}
   if(id==='historico')initHistorico();
 }
 
@@ -1069,6 +1321,31 @@ async function aiSuggest(){
 
 // ══════════ FINANCIAL ══════════
 let currentKeetaMonth=null,currentIfoodMonth=null;
+
+function renderFinImportsBar(){
+  const imports = getImports();
+  const bar  = document.getElementById('fin-imports-bar');
+  const list = document.getElementById('fin-imports-list');
+  if(!bar||!list) return;
+  if(!imports.length){ bar.style.display='none'; return; }
+  bar.style.display='block';
+  const PLAT = {keeta:'🟠 Keeta', ifood:'🔴 iFood'};
+  const fmtDate = d => d ? d.split('-').reverse().join('/') : '—';
+  list.innerHTML = [...imports].reverse().map(imp=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--cream-border);font-size:12px;">
+      <span>${PLAT[imp.plat]||imp.plat} — ${(imp.months||[]).map(m=>MONTH_NAMES[m]||m).join(', ')} &nbsp;·&nbsp; <span style="color:var(--text-light)">${fmtDate(imp.date)}</span></span>
+      <button class="btn btn-red" style="padding:3px 10px;font-size:11px;" onclick="removeImport('${imp.id}')">🗑 Remover</button>
+    </div>`).join('');
+}
+
+function clearAllImports(){
+  if(!confirm('Remover todos os imports financeiros? Os dados dos gráficos serão apagados.')) return;
+  saveImports([]);
+  FIN_DATA.keeta={};FIN_DATA.ifood={};
+  renderFinImportsBar();
+  renderFinancial();
+  showToast('Todos os imports removidos.');
+}
 
 function showFinPanel(id,btn){
   document.querySelectorAll('.fin-panel').forEach(p=>p.classList.remove('active'));
@@ -1245,9 +1522,22 @@ function handleUpload(plat,input){
 }
 
 function parseKeeta(wb){
-  // ── Detalhes da fatura (source of truth for liquido per day) ──
+  // ── Detect format ──
+  // Format A: "Histórico de pedidos" sheet (old export)
+  // Format B: Single sheet with "Horário do pedido" column (new "Pedidos recentes" export)
+  const hasHistorico = !!wb.Sheets['Histórico de pedidos'];
+
+  if(hasHistorico){
+    return parseKeetaFormatA(wb);
+  } else {
+    return parseKeetaFormatB(wb);
+  }
+}
+
+// ── FORMAT A: Histórico de pedidos (fatura mensal) ──
+function parseKeetaFormatA(wb){
   const fatSheet = wb.Sheets['Detalhes da fatura'];
-  const fatLiq = {}; // dayLabel -> liquido
+  const fatLiq = {};
   if(fatSheet){
     const fatRows = XLSX.utils.sheet_to_json(fatSheet, {header:1});
     const fh = (fatRows[0]||[]).map(h=>String(h||'').trim());
@@ -1257,49 +1547,37 @@ function parseKeeta(wb){
       const row=fatRows[r]; if(!row)continue;
       const rawDate=String(row[fDate]||'').trim();
       let day='',month='';
-      if(rawDate.includes('/')){
-        const p=rawDate.split('/');
-        day=(p[0]||'').padStart(2,'0');
-        month=(p[1]||'').padStart(2,'0');
-      }
+      if(rawDate.includes('/')){const p=rawDate.split('/');day=(p[0]||'').padStart(2,'0');month=(p[1]||'').padStart(2,'0');}
       if(!day||!month)continue;
       const key=day+'/'+month;
-      const val=parseFloat(row[fLiq])||0;
-      fatLiq[key]=(fatLiq[key]||0)+val;
+      fatLiq[key]=(fatLiq[key]||0)+(parseFloat(row[fLiq])||0);
     }
   }
-  const sheet=wb.Sheets['Histórico de pedidos'];
-  if(!sheet)throw new Error('Aba "Histórico de pedidos" não encontrada. Verifique se exportou o arquivo correto do Keeta.');
-  const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
 
-  // Header is on row index 2 (3rd row)
+  const sheet=wb.Sheets['Histórico de pedidos'];
+  if(!sheet)throw new Error('Aba "Histórico de pedidos" não encontrada.');
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
   const headers=(rows[2]||[]).map(h=>String(h||'').trim());
   const col=n=>headers.indexOf(n);
+  const iData=col('Data da transação'),iStatus=col('Status'),iBruto=col('Total do item'),
+    iLiq=col('Pagamento total'),iCom=col('Comissão básica'),iDist=col('Taxa adicional de distância'),
+    iOnline=col('Taxa de pagamento online'),iSubL=col('Custos de promoção do item por conta da loja'),
+    iSubE=col('Subsídios de entrega cobertos pela loja'),iPedido=col('Número do pedido'),
+    iHorario=col('Horário de início do pedido'),iPagForm=col('Forma de pagamento do usuário'),
+    iSerie=col('Número de série do pedido'),iSubKItem=col('Subsídio do item por conta da Keeta'),
+    iSubKEntr=col('Subsídio de taxa de entrega por conta da Keeta'),
+    iDistKm=col('Distância de navegação do pedido'),iNota=col('Notas');
 
-  const iData  = col('Data da transação');
-  const iStatus= col('Status');
-  const iBruto = col('Total do item');
-  const iLiq   = col('Pagamento total');
-  const iCom   = col('Comissão básica');
-  const iDist  = col('Taxa adicional de distância');
-  const iOnline= col('Taxa de pagamento online');
-  const iSubL  = col('Custos de promoção do item por conta da loja');
-  const iSubE  = col('Subsídios de entrega cobertos pela loja');
-  const iPedido= col('Número do pedido');
-
-  // Step 1: collect all Concluído rows, dedup exact duplicates (pedido+bruto+liquido)
-  // Keeps adjustment rows (same pedido, different values = partial refund/correction)
-  const seen = new Set();
-  const validRows = [];
+  const seen=new Set();
+  const validRows=[];
   for(let r=3;r<rows.length;r++){
     const row=rows[r];
     if(!row||!row[iStatus])continue;
     if(String(row[iStatus]).trim()!=='Concluído')continue;
-    const pedido = String(row[iPedido]||'');
-    const b = parseFloat(row[iBruto])||0;
-    const l = parseFloat(row[iLiq]  )||0;
-    // Deduplicate: skip exact copies (same pedido + same bruto + same liquido)
-    const key = pedido+'|'+b.toFixed(2)+'|'+l.toFixed(2);
+    const pedido=String(row[iPedido]||'');
+    const b=parseFloat(row[iBruto])||0;
+    const l=parseFloat(row[iLiq])||0;
+    const key=pedido+'|'+b.toFixed(2)+'|'+l.toFixed(2);
     if(seen.has(key))continue;
     seen.add(key);
     validRows.push(row);
@@ -1307,408 +1585,323 @@ function parseKeeta(wb){
 
   const byMonth={};
   for(const row of validRows){
-    // Parse date — always string "dd/mm/yyyy" from Keeta
     const raw=row[iData];
     let month='',day='';
     const rawStr=raw instanceof Date
-      ? String(raw.getDate()).padStart(2,'0')+'/'+String(raw.getMonth()+1).padStart(2,'0')+'/'+raw.getFullYear()
-      : String(raw||'').trim();
-    if(rawStr.includes('/')){
-      const p=rawStr.split('/');
-      day=(p[0]||'').padStart(2,'0');
-      month=(p[1]||'').padStart(2,'0');
-    } else if(rawStr.includes('-')){
-      month=rawStr.slice(5,7);
-      day=rawStr.slice(8,10);
-    }
+      ?String(raw.getDate()).padStart(2,'0')+'/'+String(raw.getMonth()+1).padStart(2,'0')+'/'+raw.getFullYear()
+      :String(raw||'').trim();
+    if(rawStr.includes('/')){const p=rawStr.split('/');day=(p[0]||'').padStart(2,'0');month=(p[1]||'').padStart(2,'0');}
+    else if(rawStr.includes('-')){month=rawStr.slice(5,7);day=rawStr.slice(8,10);}
     if(!month||!day||month==='00'||day==='00')continue;
-
     const dayLabel=day+'/'+month;
-    const b  = parseFloat(row[iBruto] )||0;
-    const l  = parseFloat(row[iLiq]   )||0;
-    const com= Math.abs(parseFloat(row[iCom]   )||0)
-             + Math.abs(parseFloat(row[iDist]  )||0)
-             + Math.abs(parseFloat(row[iOnline])||0);
-    const subL= Math.abs(parseFloat(row[iSubL])||0)
-              + Math.abs(parseFloat(row[iSubE])||0);
-
-    // Extra columns for order detail
-    const iHorario  = col('Horário de início do pedido');
-    const iPagForm  = col('Forma de pagamento do usuário');
-    const iSerie    = col('Número de série do pedido');
-    const iSubKItem = col('Subsídio do item por conta da Keeta');
-    const iSubKEntr = col('Subsídio de taxa de entrega por conta da Keeta');
-    const iDistKm   = col('Distância de navegação do pedido');
-    const iNota     = col('Notas');
-
+    const b=parseFloat(row[iBruto])||0;
+    const l=parseFloat(row[iLiq])||0;
+    const com=Math.abs(parseFloat(row[iCom])||0)+Math.abs(parseFloat(row[iDist])||0)+Math.abs(parseFloat(row[iOnline])||0);
+    const subL=Math.abs(parseFloat(row[iSubL])||0)+Math.abs(parseFloat(row[iSubE])||0);
+    const subKTotal=Math.abs(parseFloat(row[iSubKItem])||0)+Math.abs(parseFloat(row[iSubKEntr])||0);
     if(!byMonth[month])byMonth[month]={pedidos:0,cancelados:0,bruto:0,liquido:0,comissao:0,subsidio_loja:0,taxa_efetiva:0,breakdown:[],alertas:[],dias:{}};
     const m=byMonth[month];
     m.pedidos++;m.bruto+=b;m.comissao+=com;m.subsidio_loja+=subL;
-    // Liquido per day: prefer Detalhes da fatura (exact), fallback to Histórico
     if(!m.dias[dayLabel])m.dias[dayLabel]={d:dayLabel,b:0,l:0,n:0,_fromFat:false,pedidos:[]};
     m.dias[dayLabel].b+=b;m.dias[dayLabel].n++;
     if(!m.dias[dayLabel]._fromFat){
-      if(fatLiq[dayLabel]!==undefined){
-        m.dias[dayLabel].l=fatLiq[dayLabel];
-        m.dias[dayLabel]._fromFat=true;
-      } else {
-        m.dias[dayLabel].l+=l;
-      }
+      if(fatLiq[dayLabel]!==undefined){m.dias[dayLabel].l=fatLiq[dayLabel];m.dias[dayLabel]._fromFat=true;}
+      else{m.dias[dayLabel].l+=l;}
     }
-    // Store order detail
-    const subKTotal = Math.abs(parseFloat(row[iSubKItem])||0) + Math.abs(parseFloat(row[iSubKEntr])||0);
     m.dias[dayLabel].pedidos.push({
-      serie:    String(row[iSerie]||''),
-      horario:  String(row[iHorario]||'').slice(11,16),
-      pagForm:  String(row[iPagForm]||''),
-      bruto:    b,
-      subLoja:  subL,
-      comBasica:Math.abs(parseFloat(row[iCom])||0),
-      comDist:  Math.abs(parseFloat(row[iDist])||0),
-      taxaOnline:Math.abs(parseFloat(row[iOnline])||0),
-      subKeeta: subKTotal,
-      liquido:  l,
-      distKm:   String(row[iDistKm]||''),
-      nota:     String(row[iNota]||'').trim(),
+      serie:String(row[iSerie]||''),horario:String(row[iHorario]||'').slice(11,16),
+      pagForm:String(row[iPagForm]||''),bruto:b,subLoja:subL,
+      comBasica:Math.abs(parseFloat(row[iCom])||0),comDist:Math.abs(parseFloat(row[iDist])||0),
+      taxaOnline:Math.abs(parseFloat(row[iOnline])||0),subKeeta:subKTotal,liquido:l,
+      distKm:String(row[iDistKm]||''),nota:String(row[iNota]||'').trim(),
     });
   }
 
-  Object.entries(byMonth).forEach(([mo,m])=>{
-    // Sum liquido from dias (which uses fatura values where available)
-    m.liquido = Object.values(m.dias).reduce((s,d)=>s+d.l,0);
-    m.taxa_efetiva=m.bruto>0?parseFloat((m.comissao/m.bruto*100).toFixed(1)):0;
-    m.dias=Object.values(m.dias).sort((a,b)=>{
-      const[da,ma]=a.d.split('/');const[db,mb]=b.d.split('/');
-      return(+ma*100+ +da)-(+mb*100+ +db);
-    });
-    const comB=Math.round(m.comissao*.52);
-    const comD=Math.round(m.comissao*.33);
-    const comO=Math.round(m.comissao*.15);
-    m.breakdown=[
-      {label:'Comissão básica (9,9%)',val:'R$ '+comB,sub:'sobre base de cálculo',neg:true},
-      {label:'Taxa adicional de distância',val:'R$ '+comD,sub:'por km de entrega',neg:true},
-      {label:'Taxa de pagamento online (3,2%)',val:'R$ '+comO,sub:'por transação',neg:true},
-    ];
-    if(m.subsidio_loja>0){
-      m.breakdown.push({label:'Subsídio bancado pela loja',val:'R$ '+m.subsidio_loja.toFixed(0),sub:'promoções e frete',neg:true});
-      m.alertas=[{tipo:'amber',msg:'Subsídios bancados pela loja: R$ '+m.subsidio_loja.toFixed(2)+' ('+(m.subsidio_loja/m.bruto*100).toFixed(1)+'% do bruto). Avalie o retorno das campanhas.'}];
-    }
-  });
-  return byMonth;
-}
-
-function parseIfood(wb){
-  const sn=wb.SheetNames.find(s=>s.toLowerCase().includes('concilia'))||wb.SheetNames[0];
-  const sheet=wb.Sheets[sn];
-  if(!sheet)throw new Error('Aba de conciliação não encontrada. Verifique se exportou o Relatório de Conciliação do iFood.');
-  const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
-  const headers=(rows[0]||[]).map(h=>String(h||'').trim());
-  const col=n=>headers.indexOf(n);
-  const iFato=col('fato_gerador'),iTipo=col('tipo_lancamento'),iValor=col('valor'),
-    iBase=col('base_calculo'),iDate=col('data_criacao_pedido_associado'),iResp=col('responsavel_transacao');
-  const byMonth={};
-  for(let r=1;r<rows.length;r++){
-    const row=rows[r];if(!row)continue;
-    if(String(row[iFato]||'').trim()!=='Venda')continue;
-    const tipo=String(row[iTipo]||'').trim();
-    const raw=row[iDate];let month='',day='';
-    if(raw instanceof Date){month=String(raw.getMonth()+1).padStart(2,'0');day=String(raw.getDate()).padStart(2,'0');}
-    else if(typeof raw==='string'&&raw.length>=10){month=raw.slice(5,7);day=raw.slice(8,10);}
-    if(!month)continue;
-    const dayLabel=day+'/'+month;
-    const valor=parseFloat(row[iValor])||0,base=parseFloat(row[iBase])||0;
-    const resp=String(row[iResp]||'');
-    if(!byMonth[month])byMonth[month]={pedidos:0,cancelados:0,bruto:0,liquido:0,comissao:0,subsidio_ifood:0,subsidio_loja:0,taxa_efetiva:0,breakdown:[],alertas:[],dias:{}};
-    const m=byMonth[month];
-    if(tipo==='Entrada Financeira'){
-      m.liquido+=valor;m.bruto+=base;
-      if(!m.dias[dayLabel])m.dias[dayLabel]={d:dayLabel,b:0,l:0,n:0};
-      m.dias[dayLabel].b+=base;m.dias[dayLabel].l+=valor;m.dias[dayLabel].n++;
-    }else if(tipo==='Cobrança'||tipo==='Retenção'){m.comissao+=Math.abs(valor);}
-    else if(tipo==='Subsídio'){if(resp==='iFood'||valor>0)m.subsidio_ifood+=Math.abs(valor);else m.subsidio_loja+=Math.abs(valor);}
+  // Remove months with only boundary overlap
+  const months=Object.keys(byMonth);
+  if(months.length>1){
+    const dominant=months.reduce((a,b)=>byMonth[a].pedidos>=byMonth[b].pedidos?a:b);
+    months.forEach(mo=>{if(mo!==dominant&&Object.keys(byMonth[mo].dias).length<=1)delete byMonth[mo];});
   }
+
   Object.entries(byMonth).forEach(([mo,m])=>{
-    m.pedidos=Object.values(m.dias).reduce((s,d)=>s+d.n,0);
+    m.liquido=Object.values(m.dias).reduce((s,d)=>s+d.l,0);
     m.taxa_efetiva=m.bruto>0?parseFloat((m.comissao/m.bruto*100).toFixed(1)):0;
     m.dias=Object.values(m.dias).sort((a,b)=>{const[da,ma]=a.d.split('/');const[db,mb]=b.d.split('/');return(+ma*100+ +da)-(+mb*100+ +db);});
     m.breakdown=[
-      {label:'Comissão iFood (~23%)',val:'R$ '+Math.round(m.comissao*.9),sub:'comissão principal',neg:true},
-      {label:'Taxa de transação (~3%)',val:'R$ '+Math.round(m.comissao*.1),sub:'pagamento eletrônico',neg:true},
+      {label:'Comissão básica (9,9%)',val:'R$ '+Math.round(m.comissao*.52),sub:'sobre base de cálculo',neg:true},
+      {label:'Taxa adicional de distância',val:'R$ '+Math.round(m.comissao*.33),sub:'por km de entrega',neg:true},
+      {label:'Taxa de pagamento online (3,2%)',val:'R$ '+Math.round(m.comissao*.15),sub:'por transação',neg:true},
     ];
-    if(m.subsidio_loja>0)m.breakdown.push({label:'Subsídio loja',val:'R$ '+m.subsidio_loja.toFixed(0),sub:'promoções da loja',neg:true});
-    if(m.subsidio_ifood>0)m.breakdown.push({label:'Subsídio iFood',val:'R$ '+m.subsidio_ifood.toFixed(0),sub:'iFood cobriu promoções',neg:false});
-    m.alertas=[];
-    if(m.taxa_efetiva>26)m.alertas.push({tipo:'red',msg:'Taxa efetiva acima de 26% ('+m.taxa_efetiva+'%). Revise os descontos ativos.'});
-    if(m.subsidio_ifood>0)m.alertas.push({tipo:'green',msg:'iFood cobriu R$ '+m.subsidio_ifood.toFixed(2)+' em subsídios. Mantenha as campanhas ativas.'});
+    if(m.subsidio_loja>0){
+      m.breakdown.push({label:'Subsídio bancado pela loja',val:'R$ '+m.subsidio_loja.toFixed(0),sub:'promoções e frete',neg:true});
+      m.alertas=[{tipo:'amber',msg:'Subsídios bancados pela loja: R$ '+m.subsidio_loja.toFixed(2)+' ('+(m.subsidio_loja/m.bruto*100).toFixed(1)+'% do bruto).'}];
+    }
   });
   return byMonth;
 }
 
-// ══════════ PRICING ══════════
-function getIngrCost(nome){const i=ingredients.find(x=>x.nome===nome);if(!i)return 0;return i.custo_base!==undefined?i.custo_base:(i.preco/i.qtd_base||i.preco/i.qtd||0);}
-function calcPizzaCost(pizza){return pizza.ingredientes.reduce((s,it)=>s+getIngrCost(it.nome)*(it.qtd||0),0);}
+// ── FORMAT B: "Pedidos recentes" (novo formato com valores em BRL) ──
+function parseKeetaFormatB(wb){
+  const sheetName = wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  if(!sheet) throw new Error('Nenhuma aba encontrada no arquivo Keeta.');
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
+  const headers = (rows[0]||[]).map(h=>String(h||'').trim());
+  const col = n => headers.indexOf(n);
 
-function saveParams(){
-  params.fixo=+document.getElementById('p-fixo').value;params.vendas=+document.getElementById('p-vendas').value;
-  params.markup=+document.getElementById('p-markup').value;params.ifood=+document.getElementById('p-ifood').value;
-  params.keeta=+document.getElementById('p-keeta').value;params.outras=+document.getElementById('p-outras').value;
-  save('lv_params',params);
-}
-
-function calcPricing(){
-  const fixo=+document.getElementById('p-fixo').value||params.fixo;
-  const vendas=+document.getElementById('p-vendas').value||params.vendas;
-  const markup=+document.getElementById('p-markup').value||params.markup;
-  const ifood=(+document.getElementById('p-ifood').value||params.ifood)/100;
-  const keeta=(+document.getElementById('p-keeta').value||params.keeta)/100;
-  const outras=(+document.getElementById('p-outras').value||params.outras)/100;
-  const indireto=vendas>0?fixo/vendas:0;
-  const pizza=pizzas[currentPizzaIdx];
-  const custIngr=calcPizzaCost(pizza);
-  const custTotal=custIngr+indireto;
-  const precoBase=custTotal*markup;
-  const precoIfood=precoBase/(1-ifood-outras);
-  const precoKeeta=precoBase/(1-keeta-outras);
-  const desejado=pizza.desejado||0;
-  const lIf=desejado>0?desejado*(1-ifood-outras)-custTotal:null;
-  const lKe=desejado>0?desejado*(1-keeta-outras)-custTotal:null;
-  const R=v=>'R$ '+v.toFixed(2).replace('.',',');const P=v=>v.toFixed(1)+'%';
-  document.getElementById('pricing-result-area').innerHTML=`
-    <div class="pricing-result">
-      <div class="result-block"><div class="result-label">Custo ingredientes</div><div class="result-val">${R(custIngr)}</div></div>
-      <div class="result-block"><div class="result-label">Custo indireto</div><div class="result-val">${R(indireto)}</div><div class="result-sub">R$${params.fixo}÷${params.vendas}pzs</div></div>
-      <div class="result-block"><div class="result-label">Custo total</div><div class="result-val">${R(custTotal)}</div></div>
-      <div class="result-block"><div class="result-label">Mínimo (${markup}×)</div><div class="result-val">${R(precoBase)}</div></div>
-      <div class="result-block"><div class="result-label">Sugerido iFood</div><div class="result-val highlight">${R(precoIfood)}</div><div class="result-sub">taxa ${(ifood*100).toFixed(0)}%</div></div>
-      <div class="result-block"><div class="result-label">Sugerido Keeta</div><div class="result-val highlight">${R(precoKeeta)}</div><div class="result-sub">taxa ${(keeta*100).toFixed(0)}%</div></div>
-    </div>
-    ${desejado>0?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:10px;background:var(--cream-dark);border-radius:10px;padding:14px;">
-      <div class="result-block"><div class="result-label">💰 Preço desejado</div><div class="result-val">${R(desejado)}</div></div>
-      <div class="result-block"><div class="result-label">Lucro líq. iFood</div><div class="result-val ${lIf>=0?'highlight':'warn'}">${R(lIf)}</div><div class="result-sub">${lIf!==null?P(lIf/desejado*100)+' margem':''}</div></div>
-      <div class="result-block"><div class="result-label">Lucro líq. Keeta</div><div class="result-val ${lKe>=0?'highlight':'warn'}">${R(lKe)}</div><div class="result-sub">${lKe!==null?P(lKe/desejado*100)+' margem':''}</div></div>
-    </div>`:''}`;
-}
-
-function renderPizzaSelect(){
-  const sel=document.getElementById('pizza-select');if(!sel)return;
-  sel.innerHTML=pizzas.map((p,i)=>`<option value="${i}">${p.nome}</option>`).join('');
-  sel.value=currentPizzaIdx<pizzas.length?currentPizzaIdx:0;
-}
-
-function renderPizzaDetail(){
-  renderPizzaSelect();
-  const pizza=pizzas[currentPizzaIdx];
-  const detail=document.getElementById('pizza-detail');
-  const rows=pizza.ingredientes.map((item,ii)=>{
-    const custo=getIngrCost(item.nome)*(item.qtd||0);
-    return `<tr><td>${item.nome}</td><td><input type="number" value="${item.qtd||''}" min="0" onchange="updateIngredientQtd(${currentPizzaIdx},${ii},this.value)"></td><td style="color:var(--text-light)">${ingredients.find(x=>x.nome===item.nome)?.unidade||'g'}</td><td style="font-weight:500">R$ ${custo.toFixed(2)}</td><td><button class="btn btn-red" style="padding:4px 10px;font-size:11px" onclick="removeIngredient(${currentPizzaIdx},${ii})">✕</button></td></tr>`;
-  }).join('');
-  const opts=ingredients.map(i=>`<option value="${i.nome}">${i.nome}</option>`).join('');
-  detail.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-      <div class="pizza-detail-name">${pizza.nome}</div>
-      <button class="btn btn-green" id="pizza-save-btn" onclick="savePizzaManual()" style="font-size:12px;">
-        💾 Salvar ficha
-      </button>
-    </div>
-    <table class="ingredients-table"><thead><tr><th>Ingrediente</th><th>Qtd usada</th><th>Unidade</th><th>Custo (R$)</th><th></th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="add-ingredient">
-      <select id="add-ingr-select">${opts}</select>
-      <input type="number" id="add-ingr-qtd" placeholder="Qtd" min="0">
-      <button class="btn btn-brown" onclick="addIngredientToPizza()">+ Adicionar</button>
-    </div>
-    <div class="desired-row">
-      <label>💰 Preço desejado (R$):</label>
-      <input type="number" value="${pizza.desejado||''}" placeholder="0,00" oninput="updateDesejado(${currentPizzaIdx},this.value)">
-    </div>
-    <div id="pricing-result-area"></div>
-    <button class="btn btn-green" style="width:100%;margin-top:10px;" onclick="addToMenu(${currentPizzaIdx})">🍽️ Adicionar ao cardápio</button>`;
-  document.getElementById('p-fixo').value=params.fixo;document.getElementById('p-vendas').value=params.vendas;
-  document.getElementById('p-markup').value=params.markup;document.getElementById('p-ifood').value=params.ifood;
-  document.getElementById('p-keeta').value=params.keeta;document.getElementById('p-outras').value=params.outras;
-  calcPricing();
-}
-
-function savePizzaManual(){
-  save('lv_pizzas', pizzas);
-  const btn = document.getElementById('pizza-save-btn');
-  if(btn){ btn.textContent='✓ Salvo!'; btn.style.background='var(--green)'; setTimeout(()=>{ btn.textContent='💾 Salvar ficha'; },2000); }
-  showToast('✓ Ficha salva!');
-}
-
-function updateIngredientQtd(pi,ii,val){
-  pizzas[pi].ingredientes[ii].qtd=parseFloat(val)||0;
-  save('lv_pizzas',pizzas);
-  calcPricing();
-  // Visual feedback on save button
-  const btn=document.getElementById('pizza-save-btn');
-  if(btn){ btn.textContent='✓ Salvo automaticamente'; setTimeout(()=>{ btn.textContent='💾 Salvar ficha'; },1500); }
-}
-function removeIngredient(pi,ii){pizzas[pi].ingredientes.splice(ii,1);save('lv_pizzas',pizzas);renderPizzaDetail();}
-function addIngredientToPizza(){
-  const nome=document.getElementById('add-ingr-select').value;
-  const qtd=parseFloat(document.getElementById('add-ingr-qtd').value)||0;
-  if(!nome)return;
-  pizzas[currentPizzaIdx].ingredientes.push({nome,qtd});save('lv_pizzas',pizzas);renderPizzaDetail();showToast('Ingrediente adicionado!');
-}
-function updateDesejado(pi,val){pizzas[pi].desejado=parseFloat(val)||0;save('lv_pizzas',pizzas);calcPricing();}
-function deletePizza(){
-  if(pizzas.length<=1){showToast('Precisa ter ao menos uma pizza.');return;}
-  if(!confirm('Excluir "'+pizzas[currentPizzaIdx].nome+'"?'))return;
-  pizzas.splice(currentPizzaIdx,1);currentPizzaIdx=Math.max(0,currentPizzaIdx-1);
-  save('lv_pizzas',pizzas);renderPizzaSelect();renderPizzaDetail();showToast('Pizza excluída.');
-}
-function createNewPizza(){
-  const nome=document.getElementById('new-pizza-name').value.trim();if(!nome)return;
-  pizzas.push({nome,ingredientes:[{nome:'Massa pizza',qtd:1},{nome:'Caixa de pizza',qtd:1},{nome:'Selo',qtd:1}],desejado:0});
-  save('lv_pizzas',pizzas);currentPizzaIdx=pizzas.length-1;
-  document.getElementById('new-pizza-name').value='';renderPizzaSelect();renderPizzaDetail();showToast('Pizza criada!');
-}
-
-// ══════════ INGREDIENTS ══════════
-function calcCustoBase(ingr){
-  // Convert qtd_compra to grams based on un_compra, then custo = preco / qtd_base_g
-  const uc = (ingr.un_compra||'g').toLowerCase().trim();
-  let qtd_base_g;
-  if(uc==='kg'){
-    qtd_base_g = (ingr.qtd_compra||1) * 1000;
-  } else {
-    // 'g' or 'un' or anything else: use qtd_compra directly
-    qtd_base_g = ingr.qtd_compra||1;
-  }
-  // Store derived qtd_base for display
-  ingr.qtd_base = qtd_base_g;
-  ingr.un_base  = uc==='un' ? 'un' : 'g';
-  return qtd_base_g > 0 ? ingr.preco / qtd_base_g : 0;
-}
-
-function renderIngredients(){
-  const UN_OPTIONS = ['g','kg','un'];
-  document.getElementById('ingr-tbody').innerHTML = ingredients.map((ingr,i) => {
-    // Always recalc custo_base from current fields
-    const cb = calcCustoBase(ingr);
-    ingr.custo_base = cb;
-
-    const unOpts = UN_OPTIONS.map(u =>
-      `<option value="${u}" ${(ingr.un_compra||'g')===u?'selected':''}>${u}</option>`
-    ).join('');
-
-    return `<tr>
-      <td style="font-weight:500;font-size:13px">${ingr.nome}</td>
-      <td><input type="number" value="${ingr.preco}" step="0.01" min="0"
-        onchange="updateIngr(${i},'preco',this.value)"
-        style="width:76px;border:1px solid var(--cream-border);border-radius:6px;padding:4px 6px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--cream);color:var(--text);"></td>
-      <td><input type="number" value="${ingr.qtd_compra||1}" step="0.1" min="0"
-        onchange="updateIngr(${i},'qtd_compra',this.value)"
-        style="width:56px;border:1px solid var(--cream-border);border-radius:6px;padding:4px 6px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--cream);color:var(--text);"></td>
-      <td>
-        <select onchange="updateIngr(${i},'un_compra',this.value)"
-          style="border:1px solid var(--cream-border);border-radius:6px;padding:4px 6px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--cream);color:var(--text);cursor:pointer;">
-          ${unOpts}
-        </select>
-      </td>
-      <td style="color:var(--text-mid);font-size:12px;text-align:center">${ingr.qtd_base}</td>
-      <td style="color:var(--text-light);font-size:12px">${ingr.un_base}</td>
-      <td style="font-weight:500;color:var(--green);font-size:12px">R$&nbsp;${cb.toFixed(4)}</td>
-      <td>
-        <input type="text" value="${ingr.obs||''}" placeholder="dd/mm/aaaa"
-          onchange="updateIngr(${i},'obs',this.value)"
-          style="width:86px;border:1px solid var(--cream-border);border-radius:6px;padding:4px 6px;font-family:'DM Sans',sans-serif;font-size:11px;background:var(--cream);color:var(--text-mid);">
-        <button onclick="updateIngr(${i},'obs','${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}')"
-          title="Marcar como atualizado hoje"
-          style="border:none;background:none;cursor:pointer;font-size:13px;padding:0 2px;vertical-align:middle;">📅</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-function updateIngr(i,field,val){
-  const numFields = ['preco','qtd_compra','qtd_base'];
-  const ingr = ingredients[i];
-
-  // Capture old values before changing
-  const oldPreco     = ingr.preco;
-  const oldUnCompra  = ingr.un_compra||'g';
-  const oldQtdCompra = ingr.qtd_compra||1;
-
-  ingr[field] = numFields.includes(field) ? (parseFloat(val)||0) : val;
-  ingr.custo_base = calcCustoBase(ingr);
-
-  // Record history if price or unit changed
-  const newPreco     = ingr.preco;
-  const newUnCompra  = ingr.un_compra||'g';
-  const newQtdCompra = ingr.qtd_compra||1;
-  if(field==='preco'||field==='un_compra'||field==='qtd_compra'){
-    recordPriceChange(ingr.nome, oldPreco, newPreco, oldUnCompra, newUnCompra, oldQtdCompra, newQtdCompra);
+  // Parse BRL string like "R$ 86,66" or "-R$ 11,41" or "- 011.41"
+  function parseBRL(v){
+    if(v===null||v===undefined||v==='')return 0;
+    const s = String(v);
+    const neg = s.includes('-');
+    const digits = s.replace(/[^\d,]/g,'').replace(',','.');
+    if(!digits)return 0;
+    const val = parseFloat(digits)||0;
+    return neg ? -val : val;
   }
 
-  save('lv_ingredients',ingredients);
-  renderIngredients();
-  if(document.getElementById('page-pricing').classList.contains('active'))calcPricing();
-  if(field!=='obs') showToast('✓ Atualizado!');
+  const iStatus   = col('Status do pedido');
+  const iData     = col('Horário do pedido');
+  const iBruto    = col('Preço original');
+  const iLiq      = col('Ganhos');
+  const iCom      = col('Comissão básica');
+  const iDist     = col('Taxa adicional de distância');
+  const iOnline   = col('Taxa de pagamento online');
+  const iSubKeeta = col('Promoção financiada pela Keeta');
+  const iSubLoja  = col('Promoção financiada pela loja');
+  const iPedido   = col('Número do pedido');
+  const iItens    = col('Itens');
+
+  const byMonth={};
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r]; if(!row)continue;
+    if(String(row[iStatus]||'').trim()!=='Concluído')continue;
+
+    const rawDate = String(row[iData]||'').trim();
+    // Format: "14/06/2026 19:19"
+    let day='',month='',hora='';
+    if(rawDate.includes('/')){
+      const parts = rawDate.split(' ');
+      const dateParts = parts[0].split('/');
+      day   = (dateParts[0]||'').padStart(2,'0');
+      month = (dateParts[1]||'').padStart(2,'0');
+      hora  = parts[1]||'';
+    }
+    if(!day||!month)continue;
+    const dayLabel = day+'/'+month;
+
+    const bruto    = Math.abs(parseBRL(row[iBruto]));
+    const liquido  = Math.abs(parseBRL(row[iLiq]));
+    const com      = Math.abs(parseBRL(row[iCom]));
+    const dist     = Math.abs(parseBRL(row[iDist]));
+    const online   = Math.abs(parseBRL(row[iOnline]));
+    const subKeeta = parseBRL(row[iSubKeeta]); // positive = favor to store
+    const subLoja  = Math.abs(parseBRL(row[iSubLoja]));
+    const comTotal = com + dist + online;
+    const pedido   = String(row[iPedido]||'');
+    const serie    = pedido.slice(-4);
+    const itens    = String(row[iItens]||'').replace(/;/g,', ').trim();
+
+    if(!byMonth[month])byMonth[month]={pedidos:0,cancelados:0,bruto:0,liquido:0,comissao:0,subsidio_loja:0,subsidio_keeta:0,taxa_efetiva:0,breakdown:[],alertas:[],dias:{}};
+    const m=byMonth[month];
+    m.pedidos++;m.bruto+=bruto;m.liquido+=liquido;
+    m.comissao+=comTotal;m.subsidio_loja+=subLoja;m.subsidio_keeta+=subKeeta;
+    if(!m.dias[dayLabel])m.dias[dayLabel]={d:dayLabel,b:0,l:0,n:0,pedidos:[]};
+    m.dias[dayLabel].b+=bruto;m.dias[dayLabel].l+=liquido;m.dias[dayLabel].n++;
+    m.dias[dayLabel].pedidos.push({
+      serie,horario:hora,pagForm:'',bruto,subLoja,
+      comBasica:com,comDist:dist,taxaOnline:online,
+      subKeeta,liquido,distKm:'',nota:itens,
+    });
+  }
+
+  Object.entries(byMonth).forEach(([mo,m])=>{
+    m.taxa_efetiva=m.bruto>0?parseFloat((m.comissao/m.bruto*100).toFixed(1)):0;
+    m.dias=Object.values(m.dias).sort((a,b)=>{const[da,ma]=a.d.split('/');const[db,mb]=b.d.split('/');return(+ma*100+ +da)-(+mb*100+ +db);});
+    m.breakdown=[
+      {label:'Comissão básica',val:'R$ '+Math.round(m.comissao*.52),sub:'',neg:true},
+      {label:'Taxa de distância',val:'R$ '+Math.round(m.comissao*.30),sub:'',neg:true},
+      {label:'Taxa de pagamento online',val:'R$ '+Math.round(m.comissao*.18),sub:'',neg:true},
+    ];
+    if(m.subsidio_loja>0)m.breakdown.push({label:'Promoção financiada pela loja',val:'R$ '+m.subsidio_loja.toFixed(0),sub:'',neg:true});
+    if(m.subsidio_keeta>0)m.breakdown.push({label:'Promoção financiada pela Keeta',val:'R$ '+m.subsidio_keeta.toFixed(0),sub:'a favor da loja',neg:false});
+    m.alertas=[];
+    if(m.taxa_efetiva>25)m.alertas.push({tipo:'amber',msg:'Taxa efetiva: '+m.taxa_efetiva+'% — acima de 25%. Revise as campanhas.'});
+    if(m.subsidio_keeta>0)m.alertas.push({tipo:'green',msg:'Keeta financiou R$ '+m.subsidio_keeta.toFixed(2)+' em promoções. Mantenha as campanhas ativas.'});
+    if(m.subsidio_loja>0)m.alertas.push({tipo:'amber',msg:'Promoções bancadas pela loja: R$ '+m.subsidio_loja.toFixed(2)+' ('+(m.subsidio_loja/m.bruto*100).toFixed(1)+'% do bruto).'});
+  });
+  return byMonth;
+}
+function parseIfood(wb){
+  // Detect format:
+  // Format A: "Relatório de Conciliação" sheet (multiple rows per order)
+  // Format B: "Página 1" sheet (one row per order, "relatorio-pedidos")
+  const hasConciliacao = wb.SheetNames.some(s=>s.toLowerCase().includes('concilia'));
+  const hasPagina1     = wb.SheetNames.some(s=>s.toLowerCase().includes('página') || s.toLowerCase().includes('pagina'));
+  if(hasPagina1 && !hasConciliacao) return parseIfoodFormatB(wb);
+  return parseIfoodFormatA(wb);
 }
 
-function addIngredient(){
-  const nome       = document.getElementById('new-ingr-name').value.trim();
-  const preco      = parseFloat(document.getElementById('new-ingr-preco').value)||0;
-  const qtd_compra = parseFloat(document.getElementById('new-ingr-qtd-compra').value)||1;
-  const un_compra  = document.getElementById('new-ingr-un-compra').value||'g';
-  if(!nome){showToast('Informe o nome do ingrediente.');return;}
-  if(!qtd_compra){showToast('Informe a quantidade comprada.');return;}
-  // Auto-calc: kg → qtd_base em g, g/un → 1:1
-  const uc = un_compra.toLowerCase();
-  const qtd_base = uc==='kg' ? qtd_compra*1000 : qtd_compra;
-  const un_base  = uc==='un' ? 'un' : 'g';
-  const custo_base = qtd_base > 0 ? preco/qtd_base : 0;
-  ingredients.push({nome,preco,qtd_compra,un_compra,qtd_base,un_base,custo_base,obs:''});
-  save('lv_ingredients',ingredients);
-  document.getElementById('new-ingr-name').value='';
-  document.getElementById('new-ingr-preco').value='';
-  document.getElementById('new-ingr-qtd-compra').value='';
-  document.getElementById('new-ingr-un-compra').value='g';
-  renderIngredients();
-  showToast('Ingrediente adicionado!');
+// ── FORMAT A: Relatório de Conciliação (múltiplas linhas por pedido) ──
+function parseIfoodFormatA(wb){
+  const sn=wb.SheetNames.find(s=>s.toLowerCase().includes('concilia'))||wb.SheetNames[0];
+  const sheet=wb.Sheets[sn];
+  if(!sheet)throw new Error('Aba de conciliação não encontrada.');
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+  const headers=(rows[0]||[]).map(h=>String(h||'').trim());
+  const col=n=>headers.indexOf(n);
+  const iFato=col('fato_gerador'),iTipo=col('tipo_lancamento'),iDesc=col('descricao_lancamento'),
+    iValor=col('valor'),iBase=col('base_calculo'),iDate=col('data_criacao_pedido_associado'),
+    iResp=col('responsavel_transacao'),iPedido=col('pedido_associado_ifood'),
+    iPedCurto=col('pedido_associado_ifood_curto'),iPagMet=col('metodo_pagamento'),
+    iPagBand=col('bandeira_pagamento'),iCanal=col('canal_vendas');
+
+  const orderMap={};
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r];if(!row)continue;
+    if(String(row[iFato]||'').trim()!=='Venda')continue;
+    const pedidoId=String(row[iPedido]||'');if(!pedidoId)continue;
+    if(!orderMap[pedidoId])orderMap[pedidoId]={
+      id:pedidoId,curto:row[iPedCurto]||'',data:String(row[iDate]||''),
+      canal:String(row[iCanal]||'iFood'),pagMet:String(row[iPagMet]||''),
+      pagBand:String(row[iPagBand]||''),linhas:[]
+    };
+    orderMap[pedidoId].linhas.push({
+      tipo:String(row[iTipo]||''),desc:String(row[iDesc]||''),
+      valor:parseFloat(row[iValor])||0,base:parseFloat(row[iBase])||0,
+      resp:String(row[iResp]||''),
+    });
+  }
+
+  const byMonth={};
+  Object.values(orderMap).forEach(order=>{
+    const raw=order.data;
+    let month='',day='',hora='';
+    if(raw.length>=10){month=raw.slice(5,7);day=raw.slice(8,10);}
+    if(raw.length>=16)hora=raw.slice(11,16);
+    if(!month)return;
+    const dayLabel=day+'/'+month;
+    let bruto=0,liquido=0,comissao=0,subIfood=0,subLoja=0;
+    order.linhas.forEach(l=>{
+      if(l.tipo==='Entrada Financeira'){bruto+=l.base;liquido+=l.valor;}
+      else if(l.tipo==='Cobrança'||l.tipo==='Retenção'){comissao+=Math.abs(l.valor);}
+      else if(l.tipo==='Subsídio'){if(l.resp==='IFOOD'&&l.valor>0)subIfood+=l.valor;else if(l.valor<0)subLoja+=Math.abs(l.valor);}
+    });
+    if(bruto<=0)return;
+    if(!byMonth[month])byMonth[month]={pedidos:0,cancelados:0,bruto:0,liquido:0,comissao:0,subsidio_ifood:0,subsidio_loja:0,taxa_efetiva:0,breakdown:[],alertas:[],dias:{}};
+    const m=byMonth[month];
+    m.pedidos++;m.bruto+=bruto;m.liquido+=liquido;m.comissao+=comissao;m.subsidio_ifood+=subIfood;m.subsidio_loja+=subLoja;
+    if(!m.dias[dayLabel])m.dias[dayLabel]={d:dayLabel,b:0,l:0,n:0,pedidos:[]};
+    m.dias[dayLabel].b+=bruto;m.dias[dayLabel].l+=liquido;m.dias[dayLabel].n++;
+    const pagamento=[order.pagMet,order.pagBand].filter(v=>v&&v!=='nan'&&v!=='undefined').join(' / ');
+    m.dias[dayLabel].pedidos.push({
+      serie:String(order.curto),horario:hora,pagForm:pagamento,bruto,liquido,
+      linhas:order.linhas.filter(l=>l.tipo!=='').map(l=>({desc:l.desc,valor:l.valor,tipo:l.tipo,resp:l.resp})),
+      plat:'ifood',
+    });
+  });
+
+  Object.entries(byMonth).forEach(([mo,m])=>{
+    m.taxa_efetiva=m.bruto>0?parseFloat((m.comissao/m.bruto*100).toFixed(1)):0;
+    m.dias=Object.values(m.dias).sort((a,b)=>{const[da,ma]=a.d.split('/');const[db,mb]=b.d.split('/');return(+ma*100+ +da)-(+mb*100+ +db);});
+    const comPct=m.bruto>0?(m.comissao/m.bruto*100).toFixed(1):'0';
+    m.breakdown=[{label:'Comissão iFood ('+comPct+'%)',val:'R$ '+Math.round(m.comissao),sub:'comissão + taxas',neg:true}];
+    if(m.subsidio_loja>0)m.breakdown.push({label:'Subsídio loja',val:'R$ '+m.subsidio_loja.toFixed(0),sub:'promoções da loja',neg:true});
+    if(m.subsidio_ifood>0)m.breakdown.push({label:'Subsídio iFood',val:'R$ '+m.subsidio_ifood.toFixed(0),sub:'iFood cobriu promoções',neg:false});
+    m.alertas=[];
+    if(m.taxa_efetiva>26)m.alertas.push({tipo:'red',msg:'Taxa efetiva: '+m.taxa_efetiva+'% — acima de 26%.'});
+    if(m.subsidio_ifood>0)m.alertas.push({tipo:'green',msg:'iFood cobriu R$ '+m.subsidio_ifood.toFixed(2)+' em subsídios.'});
+  });
+  return byMonth;
 }
 
-// ══════════ CUSTOS ══════════
-function totalCustos(){return custos.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);}
-function renderCustos(){
-  document.getElementById('custos-tbody').innerHTML=custos.map((c,i)=>`<tr>
-    <td><input type="text" value="${c.nome}" style="border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);width:100%;" onchange="custos[${i}].nome=this.value;save('lv_custos',custos);"></td>
-    <td><input type="number" value="${c.valor||''}" placeholder="0" step="0.01" min="0" style="width:90px;border:1px solid var(--cream-border);border-radius:6px;padding:4px 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--cream);color:var(--text);" oninput="custos[${i}].valor=parseFloat(this.value)||0;save('lv_custos',custos);updateCustosCalc();"></td>
-    <td><button class="btn btn-red" style="padding:3px 10px;font-size:11px;" onclick="custos.splice(${i},1);save('lv_custos',custos);renderCustos();">✕</button></td>
-  </tr>`).join('');
-  const v=document.getElementById('custos-vendas');if(v&&!v.value)v.value=params.vendas;
-  updateCustosCalc();
-}
-function updateCustosCalc(){
-  const total=totalCustos();
-  const el=document.getElementById('custos-total');if(el)el.textContent='R$ '+total.toFixed(2).replace('.',',');
-  const vendas=parseFloat(document.getElementById('custos-vendas')?.value)||params.vendas;
-  const pp=vendas>0?total/vendas:0;const pct=pp/85*100;
-  const cpp=document.getElementById('custo-por-pizza');const cpct=document.getElementById('custo-pct');
-  if(cpp)cpp.textContent='R$ '+pp.toFixed(2).replace('.',',');
-  if(cpct)cpct.textContent=pct.toFixed(1)+'%';
-  const al=document.getElementById('custos-alerta');
-  if(al){al.style.display=pct>30?'block':'none';if(pct>30)al.textContent='⚠️ Custo indireto acima de 30% do ticket médio. Considere aumentar o volume ou revisar os custos.';}
-}
-function addCusto(){
-  const nome=document.getElementById('new-custo-nome').value.trim();
-  const valor=parseFloat(document.getElementById('new-custo-valor').value)||0;
-  if(!nome)return;
-  custos.push({nome,valor});save('lv_custos',custos);
-  document.getElementById('new-custo-nome').value='';document.getElementById('new-custo-valor').value='';
-  renderCustos();showToast('Custo adicionado!');
-}
-function syncCustosToParams(){
-  const total=totalCustos();
-  const vendas=parseFloat(document.getElementById('custos-vendas')?.value)||params.vendas;
-  params.fixo=total;params.vendas=vendas;save('lv_params',params);
-  const pf=document.getElementById('p-fixo');const pv=document.getElementById('p-vendas');
-  if(pf)pf.value=total;if(pv)pv.value=vendas;
-  showToast('✓ Sincronizado! Custo fixo: R$ '+total.toFixed(2));
-}
+// ── FORMAT B: Relatório de Pedidos (uma linha por pedido) ──
+function parseIfoodFormatB(wb){
+  const sn=wb.SheetNames.find(s=>s.toLowerCase().includes('página')||s.toLowerCase().includes('pagina'))||wb.SheetNames[0];
+  const sheet=wb.Sheets[sn];
+  if(!sheet)throw new Error('Aba não encontrada no arquivo iFood.');
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+  const headers=(rows[0]||[]).map(h=>String(h||'').trim());
+  const col=n=>headers.indexOf(n);
 
+  const iStatus   = col('STATUS FINAL DO PEDIDO');
+  const iData     = col('DATA E HORA DO PEDIDO');
+  const iBruto    = col('VALOR DOS ITENS (R$)');
+  const iLiq      = col('VALOR LIQUIDO (R$)');
+  const iComissao = col('TAXAS E COMISSOES (R$)');
+  const iTaxaServ = col('TAXA DE SERVIÇO (R$)');
+  const iSubIfood = col('INCENTIVO PROMOCIONAL DO IFOOD (R$)');
+  const iSubLoja  = col('INCENTIVO PROMOCIONAL DA LOJA (R$)');
+  const iTaxaEntr = col('TAXA DE ENTREGA PAGA PELO CLIENTE (R$)');
+  const iSerie    = col('ID CURTO DO PEDIDO');
+  const iPagamento= col('FORMA DE PAGAMENTO');
+  const iEntrega  = col('TIPO DE ENTREGA');
 
+  const byMonth={};
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r];if(!row)continue;
+    if(String(row[iStatus]||'').trim()!=='CONCLUIDO')continue;
+
+    const rawDate=String(row[iData]||'').trim();
+    // Format: "31/05/2026 18:46:46"
+    let day='',month='',hora='';
+    if(rawDate.includes('/')){
+      const parts=rawDate.split(' ');
+      const dp=parts[0].split('/');
+      day=(dp[0]||'').padStart(2,'0');
+      month=(dp[1]||'').padStart(2,'0');
+      hora=(parts[1]||'').slice(0,5);
+    }
+    if(!day||!month)continue;
+    const dayLabel=day+'/'+month;
+
+    const bruto    = Math.abs(parseFloat(row[iBruto])||0);
+    const liquido  = Math.abs(parseFloat(row[iLiq])||0);
+    const comissao = Math.abs(parseFloat(row[iComissao])||0);
+    const taxaServ = Math.abs(parseFloat(row[iTaxaServ])||0);
+    const subIfood = Math.abs(parseFloat(row[iSubIfood])||0);
+    const subLoja  = Math.abs(parseFloat(row[iSubLoja])||0);
+    const taxaEntr = Math.abs(parseFloat(row[iTaxaEntr])||0);
+    const serie    = String(row[iSerie]||'');
+    const pagForm  = String(row[iPagamento]||'');
+    const comTotal = comissao + taxaServ;
+
+    if(!byMonth[month])byMonth[month]={pedidos:0,cancelados:0,bruto:0,liquido:0,comissao:0,subsidio_ifood:0,subsidio_loja:0,taxa_efetiva:0,breakdown:[],alertas:[],dias:{}};
+    const m=byMonth[month];
+    m.pedidos++;m.bruto+=bruto;m.liquido+=liquido;
+    m.comissao+=comTotal;m.subsidio_ifood+=subIfood;m.subsidio_loja+=subLoja;
+
+    if(!m.dias[dayLabel])m.dias[dayLabel]={d:dayLabel,b:0,l:0,n:0,pedidos:[]};
+    m.dias[dayLabel].b+=bruto;m.dias[dayLabel].l+=liquido;m.dias[dayLabel].n++;
+    m.dias[dayLabel].pedidos.push({
+      serie,horario:hora,pagForm,bruto,liquido,plat:'ifood',
+      linhas:[
+        ...(comissao>0 ?[{desc:'Taxas e comissões',    valor:-comissao,tipo:'Cobrança',resp:'IFOOD'}]:[]),
+        ...(taxaServ>0 ?[{desc:'Taxa de serviço',       valor:-taxaServ, tipo:'Cobrança',resp:'IFOOD'}]:[]),
+        ...(subIfood>0 ?[{desc:'Incentivo iFood',        valor:subIfood,  tipo:'Subsídio',resp:'IFOOD'}]:[]),
+        ...(subLoja>0  ?[{desc:'Incentivo da loja',      valor:-subLoja,  tipo:'Subsídio',resp:'LOJA'}]:[]),
+        ...(taxaEntr>0 ?[{desc:'Taxa entrega (cliente)', valor:taxaEntr,  tipo:'Info',   resp:'CLIENTE'}]:[]),
+      ],
+    });
+  }
+
+  Object.entries(byMonth).forEach(([mo,m])=>{
+    m.taxa_efetiva=m.bruto>0?parseFloat((m.comissao/m.bruto*100).toFixed(1)):0;
+    m.dias=Object.values(m.dias).sort((a,b)=>{const[da,ma]=a.d.split('/');const[db,mb]=b.d.split('/');return(+ma*100+ +da)-(+mb*100+ +db);});
+    const comPct=m.bruto>0?(m.comissao/m.bruto*100).toFixed(1):'0';
+    m.breakdown=[
+      {label:'Taxas e comissões ('+comPct+'%)',val:'R$ '+Math.round(m.comissao),sub:'comissão + taxa de serviço',neg:true},
+    ];
+    if(m.subsidio_loja>0)m.breakdown.push({label:'Incentivo da loja',val:'R$ '+m.subsidio_loja.toFixed(0),sub:'promoções bancadas pela loja',neg:true});
+    if(m.subsidio_ifood>0)m.breakdown.push({label:'Incentivo iFood',val:'R$ '+m.subsidio_ifood.toFixed(0),sub:'iFood cobriu promoções',neg:false});
+    m.alertas=[];
+    if(m.taxa_efetiva>26)m.alertas.push({tipo:'red',msg:'Taxa efetiva: '+m.taxa_efetiva+'% — acima de 26%.'});
+    if(m.subsidio_ifood>0)m.alertas.push({tipo:'green',msg:'iFood financiou R$ '+m.subsidio_ifood.toFixed(2)+' em incentivos. Mantenha as campanhas.'});
+    if(m.subsidio_loja>0)m.alertas.push({tipo:'amber',msg:'Incentivos da loja: R$ '+m.subsidio_loja.toFixed(2)+' ('+(m.subsidio_loja/m.bruto*100).toFixed(1)+'% do bruto).'});
+  });
+  return byMonth;
+}
 // ══════════ CARDÁPIO ══════════
 const PIZZA_CATEGORIES = {
   'Margherita':'Clássicas','Lombo Defumado':'Especiais','Burrata & Azeitona':'Especiais',
@@ -2203,41 +2396,42 @@ function openDayDetail(day, storeKey){
   const pedidos = _dayDetailStore[storeKey] || [];
   if(!pedidos.length){ showToast('Sem detalhes disponíveis para este dia.'); return; }
   const R = v => 'R$ '+parseFloat(v||0).toFixed(2).replace('.',',');
-  const totBruto   = pedidos.reduce((s,p)=>s+p.bruto,0);
-  const totSubLoja = pedidos.reduce((s,p)=>s+p.subLoja,0);
-  const totComBasica= pedidos.reduce((s,p)=>s+p.comBasica,0);
-  const totComDist = pedidos.reduce((s,p)=>s+p.comDist,0);
-  const totTaxaOnl = pedidos.reduce((s,p)=>s+p.taxaOnline,0);
-  const totLiq     = pedidos.reduce((s,p)=>s+p.liquido,0);
+  const isIfood = pedidos[0] && pedidos[0].plat === 'ifood';
 
-  const rows = pedidos
-    .sort((a,b)=>a.horario.localeCompare(b.horario))
-    .map(p=>{
-      const totalDespesas = p.subLoja + p.comBasica + p.comDist + p.taxaOnline;
-      return `<tr>
-        <td style="font-size:12px;color:var(--text-light)">${p.horario}</td>
-        <td style="font-size:11px;color:var(--text-mid)">${p.serie}</td>
-        <td style="font-size:12px">${p.pagForm}</td>
-        <td style="font-weight:500">${R(p.bruto)}</td>
-        <td style="color:var(--red);font-size:12px">${R(p.subLoja)}</td>
-        <td style="color:var(--red);font-size:12px">${R(p.comBasica)}</td>
-        <td style="color:var(--red);font-size:12px">${p.distKm||'—'} / ${R(p.comDist)}</td>
-        <td style="color:var(--red);font-size:12px">${R(p.taxaOnline)}</td>
-        <td style="font-weight:500;color:var(--green)">${R(p.liquido)}</td>
-        ${p.nota?`<td style="font-size:11px;color:var(--amber);max-width:120px;word-break:break-word">⚠️ ${p.nota}</td>`:'<td></td>'}
-      </tr>`;
-    }).join('');
+  const totBruto = pedidos.reduce((s,p)=>s+p.bruto,0);
+  const totLiq   = pedidos.reduce((s,p)=>s+p.liquido,0);
 
-  document.getElementById('day-modal-content').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
-      <div>
-        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);">Pedidos do dia ${day}</div>
-        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">${pedidos.length} pedidos</div>
+  // Summary cards
+  let summaryCards = '';
+  if(isIfood){
+    // Aggregate all line types across all orders
+    const lineMap = {};
+    pedidos.forEach(p=>(p.linhas||[]).forEach(l=>{
+      if(!lineMap[l.desc]) lineMap[l.desc]={total:0,resp:l.resp};
+      lineMap[l.desc].total += l.valor;
+    }));
+    const charges = Object.entries(lineMap).filter(([,v])=>v.total<0);
+    const credits = Object.entries(lineMap).filter(([,v])=>v.total>0 && !['Entrada Financeira'].includes(''));
+    summaryCards = `
+      <div style="background:var(--cream-dark);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-light);margin-bottom:3px;">Bruto total</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);">${R(totBruto)}</div>
       </div>
-      <button class="btn btn-brown" style="font-size:12px;" onclick="exportDayDetail('${day}',_dayDetailStore[Object.keys(_dayDetailStore).find(k=>k.endsWith('_${day}'))||'']||[])">⬇ Exportar CSV</button>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:16px;">
+      ${charges.map(([desc,v])=>`
+        <div style="background:var(--red-soft);border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--red);margin-bottom:3px;">${desc.replace('iFood','').replace('do cliente','').trim()}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--red);">${R(v.total)}</div>
+        </div>`).join('')}
+      <div style="background:var(--green-soft);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:10px;color:var(--green);margin-bottom:3px;">Líquido total</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--green);">${R(totLiq)}</div>
+      </div>`;
+  } else {
+    const totSubLoja  = pedidos.reduce((s,p)=>s+(p.subLoja||0),0);
+    const totComBasica= pedidos.reduce((s,p)=>s+(p.comBasica||0),0);
+    const totComDist  = pedidos.reduce((s,p)=>s+(p.comDist||0),0);
+    const totTaxaOnl  = pedidos.reduce((s,p)=>s+(p.taxaOnline||0),0);
+    summaryCards = `
       <div style="background:var(--cream-dark);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:10px;color:var(--text-light);margin-bottom:3px;">Bruto total</div>
         <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);">${R(totBruto)}</div>
@@ -2257,28 +2451,66 @@ function openDayDetail(day, storeKey){
       <div style="background:var(--green-soft);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:10px;color:var(--green);margin-bottom:3px;">Líquido total</div>
         <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--green);">${R(totLiq)}</div>
-      </div>
-    </div>
+      </div>`;
+  }
 
+  // Build rows
+  const rows = pedidos
+    .sort((a,b)=>(a.horario||'').localeCompare(b.horario||''))
+    .map(p=>{
+      if(isIfood){
+        // iFood: show each line as sub-rows inside the order
+        const linhas = (p.linhas||[]).map(l=>{
+          const neg = l.valor < 0;
+          const isIfoodResp = l.resp==='IFOOD';
+          return `<div style="display:flex;justify-content:space-between;font-size:11px;padding:1px 0;color:${neg?(isIfoodResp?'var(--red)':'var(--amber)'):'var(--green)'}">
+            <span>${l.desc}</span>
+            <span style="font-weight:500;white-space:nowrap;margin-left:8px;">${R(l.valor)}</span>
+          </div>`;
+        }).join('');
+        return `<tr>
+          <td style="font-size:12px;color:var(--text-light)">${p.horario}</td>
+          <td style="font-size:11px;color:var(--text-mid)">#${p.serie}</td>
+          <td style="font-size:12px">${p.pagForm}</td>
+          <td style="font-weight:500">${R(p.bruto)}</td>
+          <td style="min-width:200px">${linhas}</td>
+          <td style="font-weight:500;color:var(--green)">${R(p.liquido)}</td>
+        </tr>`;
+      } else {
+        return `<tr>
+          <td style="font-size:12px;color:var(--text-light)">${p.horario}</td>
+          <td style="font-size:11px;color:var(--text-mid)">${p.serie}</td>
+          <td style="font-size:12px">${p.pagForm}</td>
+          <td style="font-weight:500">${R(p.bruto)}</td>
+          <td style="color:var(--red);font-size:12px">${R(p.subLoja)}</td>
+          <td style="color:var(--red);font-size:12px">${R(p.comBasica)}</td>
+          <td style="color:var(--red);font-size:12px">${p.distKm||'—'} / ${R(p.comDist)}</td>
+          <td style="color:var(--red);font-size:12px">${R(p.taxaOnline)}</td>
+          <td style="font-weight:500;color:var(--green)">${R(p.liquido)}</td>
+          ${p.nota?`<td style="font-size:11px;color:var(--amber)">⚠️ ${p.nota}</td>`:'<td></td>'}
+        </tr>`;
+      }
+    }).join('');
+
+  const headers = isIfood
+    ? '<th>Hora</th><th>Pedido</th><th>Pagamento</th><th>Bruto</th><th>Cobranças detalhadas</th><th>Líquido</th>'
+    : '<th>Hora</th><th>Pedido</th><th>Pagamento</th><th>Bruto</th><th>Sub. loja</th><th>Com. básica</th><th>Dist./Taxa</th><th>Taxa online</th><th>Líquido</th><th>Obs.</th>';
+
+  document.getElementById('day-modal-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);">Pedidos do dia ${day}</div>
+        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">${pedidos.length} pedidos</div>
+      </div>
+      <button class="btn btn-brown" style="font-size:12px;" onclick="exportDayDetail('${day}',_dayDetailStore['${storeKey}']||[])">⬇ Exportar CSV</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px;">
+      ${summaryCards}
+    </div>
     <div style="overflow-x:auto;">
-      <table class="orders-table" style="min-width:650px;">
-        <thead><tr>
-          <th>Hora</th><th>Pedido</th><th>Pagamento</th>
-          <th>Bruto</th><th>Sub. loja</th><th>Com. básica</th>
-          <th>Distância / Taxa</th><th>Taxa online</th>
-          <th>Líquido (AJ)</th><th>Obs.</th>
-        </tr></thead>
+      <table class="orders-table">
+        <thead><tr>${headers}</tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr style="background:var(--cream-dark);font-weight:500;">
-          <td colspan="3" style="padding:8px 10px;font-size:12px;">Total</td>
-          <td style="padding:8px 10px;font-size:12px;">${R(totBruto)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--red)">${R(totSubLoja)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--red)">${R(totComBasica)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--red)">${R(totComDist)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--red)">${R(totTaxaOnl)}</td>
-          <td style="padding:8px 10px;font-size:12px;color:var(--green);font-weight:500;">${R(totLiq)}</td>
-          <td></td>
-        </tr></tfoot>
       </table>
     </div>`;
 
@@ -2363,8 +2595,1405 @@ function exportIngredientes(){
 }
 
 
+function exportPrecificacao(){
+  const fixo   = params.fixo   || 0;
+  const vendas = params.vendas || 150;
+  const markup = params.markup || 2;
+  const ifoodTax = (params.ifood || 26) / 100;
+  const keetaTax = (params.keeta || 25) / 100;
+  const indireto = vendas > 0 ? fixo / vendas : 0;
+  const R = v => parseFloat(v||0).toFixed(2);
+
+  const rows = [];
+
+  // Header info
+  rows.push('PRECIFICACAO LA VERA');
+  rows.push('Custo fixo mensal: R$ ' + R(fixo) + ' | Pizzas/mes: ' + vendas + ' | Markup: ' + markup + 'x | Taxa iFood: ' + (ifoodTax*100).toFixed(0) + '% | Taxa Keeta: ' + (keetaTax*100).toFixed(0) + '%');
+  rows.push('');
+
+  pizzas.forEach(pizza => {
+    const custIngr = calcPizzaCost(pizza);
+    const custTotal = custIngr + indireto;
+    const precoBase = custTotal * markup;
+    const precoIfood = precoBase / (1 - ifoodTax);
+    const precoKeeta = precoBase / (1 - keetaTax);
+    const desejado = pizza.desejado || 0;
+    const lucroIf = desejado > 0 ? desejado * (1 - ifoodTax) - custTotal : '';
+    const lucroKe = desejado > 0 ? desejado * (1 - keetaTax) - custTotal : '';
+
+    rows.push('PIZZA: ' + pizza.nome);
+    rows.push('Ingrediente,Qtd usada,Unidade,Custo unitario (R$),Custo total (R$)');
+
+    pizza.ingredientes.forEach(item => {
+      const ingr = ingredients.find(i => i.nome === item.nome);
+      const custoUnit = ingr ? (ingr.custo_base || ingr.preco / (ingr.qtd_base || ingr.qtd || 1)) : 0;
+      const custoTotal = custoUnit * (item.qtd || 0);
+      const unBase = ingr ? (ingr.un_base || 'g') : 'g';
+      rows.push([
+        '"' + item.nome + '"',
+        item.qtd || 0,
+        unBase,
+        R(custoUnit),
+        R(custoTotal)
+      ].join(','));
+    });
+
+    rows.push(',,,,');
+    rows.push('Custo ingredientes,R$ ' + R(custIngr));
+    rows.push('Custo indireto,R$ ' + R(indireto));
+    rows.push('Custo total,R$ ' + R(custTotal));
+    rows.push('Preco minimo (' + markup + 'x),R$ ' + R(precoBase));
+    rows.push('Preco sugerido iFood,R$ ' + R(precoIfood));
+    rows.push('Preco sugerido Keeta,R$ ' + R(precoKeeta));
+    if(desejado > 0){
+      rows.push('Preco desejado,R$ ' + R(desejado));
+      rows.push('Lucro liquido iFood,R$ ' + R(lucroIf));
+      rows.push('Lucro liquido Keeta,R$ ' + R(lucroKe));
+    }
+    rows.push('');
+    rows.push('---');
+    rows.push('');
+  });
+
+  const sep = String.fromCharCode(10);
+  const csv = rows.join(sep);
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  const today = new Date().toLocaleDateString('pt-BR').replace(/[/]/g,'-');
+  a.download = 'precificacao_lavera_' + today + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Precificacao exportada!');
+}
+
+
+// ══════════ WEEK IDEAS GENERATOR ══════════
+
+
+
+
+
+// ══════════ BANCO DE IDEIAS ══════════
+const BANCO_DEFAULT = [
+  // ── REELS ──
+  {id:'r1',formato:'Reels',cat:'producao',label:'🎥 Produção',color:'green',
+   titulo:'90 segundos no forno a lenha',
+   desc:'Câmera focada na boca do forno. Pizza entra crua, sai em 90 segundos com bordas chamuscadas e queijo borbulhando. Áudio ambiente do forno. Sem narração.',
+   legenda:'90 segundos. 485°C. É isso que transforma farinha e tomate numa pizza napoletana de verdade. 🔥'},
+
+  {id:'r2',formato:'Reels',cat:'educativo',label:'📚 Educativo',color:'blue',
+   titulo:'Como a gente abre a massa — sem rolo',
+   desc:'Close nas mãos abrindo a massa com os punhos. Mostrar o movimento de slap, o ar entrando, a massa crescendo nas bordas. Legendado para quem assiste sem som.',
+   legenda:'Rolo? Não aqui. A massa napoletana pede mãos, técnica e respeito. O resultado você conhece.'},
+
+  {id:'r3',formato:'Reels',cat:'sabor',label:'🍕 Sabores',color:'red',
+   titulo:'A burrata sendo rasgada ao vivo',
+   desc:'Câmera lenta: burrata inteira chegando sobre a pizza quente, sendo rasgada, creme escorrendo. Manjericão fresco colocado folha a folha. Sem texto, só o visual.',
+   legenda:'Tem coisas que a câmera não consegue capturar completamente. O cheiro, o calor. Mas a gente tenta.'},
+
+  {id:'r4',formato:'Reels',cat:'producao',label:'🎥 Produção',color:'green',
+   titulo:'Do começo ao fim: uma pizza em 60 segundos',
+   desc:'Time-lapse ou edição acelerada: farinha, bola de massa, fermentação, abertura, montagem, forno, saída, corte. Música animada de fundo.',
+   legenda:'24h de fermentação. 90 segundos de forno. Uma pizza que você nunca vai esquecer.'},
+
+  {id:'r5',formato:'Reels',cat:'bastidores',label:'🎬 Bastidores',color:'brown',
+   titulo:'O sábado começa horas antes',
+   desc:'Série rápida: bolinhas de massa sendo feitas cedo, ingredientes sendo preparados, forno aquecendo, mesa sendo montada. Ritmo crescente até a abertura.',
+   legenda:'Sábado por aqui tem um ritmo só nosso. Cada detalhe preparado com antecedência para chegar perfeito na sua mesa.'},
+
+  {id:'r6',formato:'Reels',cat:'educativo',label:'📚 Educativo',color:'blue',
+   titulo:'Napoletana vs. brasileira — o corte revela tudo',
+   desc:'Dois slides: corte de uma pizza tradicional brasileira vs corte de uma napoletana. Mostrar a diferença na massa, nas bordas, no interior. Texto na tela explicando.',
+   legenda:'Não tem certo nem errado. Tem estilos diferentes. A nossa escolha foi a napoletana — e a gente vai te mostrar por quê.'},
+
+  {id:'r7',formato:'Reels',cat:'sabor',label:'🍕 Sabores',color:'red',
+   titulo:'Mel sendo regado sobre os cinco queijos',
+   desc:'Close no mel em fio caindo sobre a pizza ainda quente, queijos borbulhando, nozes sendo jogadas. Câmera lenta no momento do mel.',
+   legenda:'Quando o mel encontra os queijos quentes do forno, acontece algo que a gente não consegue descrever em legenda. Vem provar.'},
+
+  {id:'r8',formato:'Reels',cat:'engajamento',label:'💬 Engajamento',color:'amber',
+   titulo:'Você saberia identificar a napoletana?',
+   desc:'Mostrar 3 pizzas rapidamente — qual é a napoletana? Revelar com zoom na borda e no cornicione. Pedir para comentar.',
+   legenda:'Das três pizzas acima, qual é a napoletana? Comenta aí — resposta nos Stories 👇'},
+
+  {id:'r9',formato:'Reels',cat:'producao',label:'🎥 Produção',color:'green',
+   titulo:'A fermentação que muda tudo',
+   desc:'Mostrar as bolinhas de massa logo depois de feitas e 24h depois — a diferença visual é impressionante. Narração simples explicando por quê isso importa.',
+   legenda:'Essa diferença entre as duas bolinhas é o que separa uma pizza qualquer de uma napoletana de verdade. 24h de paciência.'},
+
+  {id:'r10',formato:'Reels',cat:'social',label:'⭐ Prova social',color:'green',
+   titulo:'A reação de quem prova pela primeira vez',
+   desc:'Compilado de clientes provando a primeira fatia — expressões genuínas, primeiras reações. Pedir autorização antes de filmar.',
+   legenda:'A primeira vez é sempre especial. Obrigada a todos que confiaram na nossa pizza 🤍'},
+
+  {id:'r11',formato:'Reels',cat:'bastidores',label:'🎬 Bastidores',color:'brown',
+   titulo:'O forno a lenha: quem comanda aqui',
+   desc:'Apresentar o forno — alimentando com lenha, a temperatura subindo, as chamas. Mostrar o termômetro chegando em 485°C.',
+   legenda:'Ele aquece por horas antes de receber a primeira pizza. O forno a lenha é o coração da La Vera.'},
+
+  {id:'r12',formato:'Reels',cat:'educativo',label:'📚 Educativo',color:'blue',
+   titulo:'Por que a borda fica tão alta?',
+   desc:'Mostrar a técnica de abrir a massa com os punhos, o ar ficando preso nas bordas. Depois mostrar o cornicione pronto — aerado, leve, chamuscado.',
+   legenda:'Aquela borda alta não é acidente. É ar, técnica e 700 anos de tradição napolitana.'},
+
+  // ── FEED ──
+  {id:'f1',formato:'Feed',cat:'educativo',label:'📚 Educativo',color:'blue',
+   titulo:'A anatomia da pizza napoletana',
+   desc:'Foto da pizza com setas apontando cada parte: cornicione (borda alta), il disco (centro fino), mancha de leopardo (pontilhado chamuscado), fior di latte. Design limpo.',
+   legenda:'Cada detalhe tem um nome, uma razão e uma técnica por trás. Salva esse post para a próxima vez que pedir a sua 🍕'},
+
+  {id:'f2',formato:'Feed',cat:'sabor',label:'🍕 Sabores',color:'red',
+   titulo:'Os ingredientes antes de entrar no forno',
+   desc:'Flatlay dos ingredientes do sabor da semana separados — tomate, queijo, ervas, embutidos. Foto limpa, fundo claro, composição cuidadosa.',
+   legenda:'Poucos ingredientes. Todos escolhidos com critério. É assim que a napoletana funciona.'},
+
+  {id:'f3',formato:'Feed',cat:'social',label:'⭐ Prova social',color:'green',
+   titulo:'O que estão dizendo sobre a La Vera',
+   desc:'Carrossel com 4-5 avaliações reais do Google/iFood/Keeta. Design simples, foto da pizza ao fundo em cada slide. Último slide: CTA para deixar avaliação.',
+   legenda:'Preferimos deixar quem já provou falar por nós 🤍 (link para avaliar na bio)'},
+
+  {id:'f4',formato:'Feed',cat:'educativo',label:'📚 Educativo',color:'blue',
+   titulo:'5 coisas que vão te surpreender na primeira mordida',
+   desc:'Carrossel: 1-borda aerada 2-centro macio 3-sabor levemente ácido da fermentação 4-poucos ingredientes 5-mancha de leopardo. Uma surpresa por slide.',
+   legenda:'A primeira vez é sempre uma surpresa. E geralmente uma boa. Já passou por isso?'},
+
+  {id:'f5',formato:'Feed',cat:'producao',label:'🎥 Produção',color:'green',
+   titulo:'Do trigo à mesa: nossa farinha',
+   desc:'Foto da farinha tipo 00 — explicar por que usamos esse tipo específico, a proteína mais alta, o resultado na massa. Foto do saco + massa pronta para comparar.',
+   legenda:'Não é qualquer farinha. A tipo 00 é moída mais fino, tem mais glúten, e é responsável pela textura que você sente na primeira mordida.'},
+
+  {id:'f6',formato:'Feed',cat:'bastidores',label:'🎬 Bastidores',color:'brown',
+   titulo:'Uma semana começa na véspera',
+   desc:'Foto das bolinhas de massa sendo feitas, com a data escrita no recipiente. Mostrar a rotina de preparação antecipada.',
+   legenda:'Cada pizza começa pelo menos 24h antes de chegar à sua mesa. Isso não é opcional — é o que faz a diferença.'},
+
+  {id:'f7',formato:'Feed',cat:'engajamento',label:'💬 Engajamento',color:'amber',
+   titulo:'Qual é o seu sabor favorito até hoje?',
+   desc:'Foto da pizza mais pedida do mês com pergunta direta nos comentários. Responder todos os comentários para aumentar o alcance.',
+   legenda:'Conta pra gente aqui nos comentários: qual foi a pizza que você mais amou na La Vera até hoje? 👇'},
+
+  {id:'f8',formato:'Feed',cat:'sabor',label:'🍕 Sabores',color:'red',
+   titulo:'Destaque da semana com história',
+   desc:'Carrossel: slide 1 foto bonita da pizza, slide 2 ingredientes com origem, slide 3 o que torna especial, slide 4 CTA para pedir.',
+   legenda:'Essa semana ela chegou pra ficar. Os ingredientes falam por si — mas o resultado você precisa provar. 🔥'},
+
+  {id:'f9',formato:'Feed',cat:'educativo',label:'📚 Educativo',color:'blue',
+   titulo:'"Isso é normal?" — respondendo as dúvidas',
+   desc:'Carrossel FAQ: borda grossa (é o cornicione), centro macio (hidratação alta), manchas pretas (forno a lenha), sabor levemente ácido (fermentação). Tom leve e próximo.',
+   legenda:'A gente entende o estranhamento. Todo mundo que prova pela primeira vez passa por isso. Mas depois que você entende o que está comendo — é difícil querer outra coisa.'},
+
+  {id:'f10',formato:'Feed',cat:'producao',label:'🎥 Produção',color:'green',
+   titulo:'O tomate San Marzano e seus substitutos',
+   desc:'Foto dos tomates usados — explicar a escolha, a acidez equilibrada, por que menos é mais no molho da napoletana.',
+   legenda:'O molho de tomate da napoletana tem um segredo: ele não precisa de muito. Tomate bom, sal, manjericão. Fim.'},
+
+  {id:'f11',formato:'Feed',cat:'social',label:'⭐ Prova social',color:'green',
+   titulo:'Número de pizzas servidas esse mês',
+   desc:'Post simples com um número grande em tipografia bonita + foto. Humaniza e mostra escala sem parecer arrogante.',
+   legenda:'Esse mês foram [número] pizzas saindo do nosso forno. Obrigada a cada um de vocês 🙏'},
+
+  {id:'f12',formato:'Feed',cat:'engajamento',label:'💬 Engajamento',color:'amber',
+   titulo:'Você toparia mel na pizza?',
+   desc:'Foto da Cinco Queijos com Mel com pergunta direta. No dia seguinte, postar resultado e revelar que é a mais pedida.',
+   legenda:'Mel na pizza napoletana: você toparia? Comenta sim ou não aqui embaixo 👇 (amanhã revelamos o resultado)'},
+
+  // ── STORIES ──
+  {id:'s1',formato:'Stories',cat:'engajamento',label:'💬 Engajamento',color:'amber',
+   titulo:'Poll: qual sabor a gente coloca essa semana?',
+   desc:'Sticker de enquete com dois sabores candidatos. No próximo story, revelar o vencedor. Fazer isso toda semana cria ritual de participação.',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s2',formato:'Stories',cat:'producao',label:'🎥 Produção',color:'green',
+   titulo:'Bastidores do dia: a cozinha antes de abrir',
+   desc:'Sequência de 3-4 stories ao longo da tarde mostrando o prep: massa sendo aberta, ingredientes sendo organizados, forno aquecendo.',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s3',formato:'Stories',cat:'social',label:'⭐ Prova social',color:'green',
+   titulo:'Repost de avaliação do cliente',
+   desc:'Capturar uma avaliação boa do Google ou comentário bonito do iFood/Keeta e repostar nos Stories com agradecimento personalizado.',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s4',formato:'Stories',cat:'engajamento',label:'💬 Engajamento',color:'amber',
+   titulo:'Quiz: você conhece a napoletana?',
+   desc:'3 Stories com perguntas de múltipla escolha usando sticker de quiz. Ex: "A borda alta da napoletana se chama?" A) Cornicione B) Crosta C) Bordatura.',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s5',formato:'Stories',cat:'sabor',label:'🍕 Sabores',color:'red',
+   titulo:'Contagem regressiva: só até domingo',
+   desc:'Foto do sabor especial da semana + sticker de countdown até domingo 23h. No último day, repostar com "última chance".',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s6',formato:'Stories',cat:'bastidores',label:'🎬 Bastidores',color:'brown',
+   titulo:'Nos bastidores: a massa depois de 24h',
+   desc:'Foto ou vídeo curto mostrando a diferença da massa antes e depois da fermentação. Sticker de antes/depois ou swipe.',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s7',formato:'Stories',cat:'educativo',label:'📚 Educativo',color:'blue',
+   titulo:'Você sabia? Fato rápido sobre napoletana',
+   desc:'Um fato por semana em formato simples: "A napoletana original é protegida por denominação de origem na Itália desde 2010." Design limpo com emoji.',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s8',formato:'Stories',cat:'engajamento',label:'💬 Engajamento',color:'amber',
+   titulo:'Caixa de perguntas: o que você quer saber?',
+   desc:'Sticker de caixa de perguntas com "Me pergunte sobre a nossa pizza!". Responder as melhores no dia seguinte em stories individuais.',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s9',formato:'Stories',cat:'producao',label:'🎥 Produção',color:'green',
+   titulo:'O forno chegou em temperatura',
+   desc:'Story simples mostrando o termômetro em 485°C com texto: "Pronto para receber as primeiras pizzas hoje 🔥". Cria expectativa para a noite.',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s10',formato:'Stories',cat:'sabor',label:'🍕 Sabores',color:'red',
+   titulo:'Arrasta pra ver a pizza saindo do forno',
+   desc:'Dois stories: primeiro mostra a pizza crua entrando, segundo mostra saindo pronta. Pedir para arrastar ou usar sticker de "próximo".',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s11',formato:'Stories',cat:'social',label:'⭐ Prova social',color:'green',
+   titulo:'Obrigada pelo pedido de [cidade/bairro]!',
+   desc:'Quando chegar pedido de bairro mais distante ou cidade nova, postar nos Stories com o mapa marcado e agradecimento. Humaniza e mostra alcance.',
+   legenda:'(texto vai dentro do Stories)'},
+
+  {id:'s12',formato:'Stories',cat:'engajamento',label:'💬 Engajamento',color:'amber',
+   titulo:'Ranking da semana: pizzas mais pedidas',
+   desc:'Toda semana revelar o pódio das 3 mais pedidas no Keeta+iFood. Gera curiosidade e pode mudar comportamento de pedido.',
+   legenda:'(texto vai dentro do Stories)'},
+];
+
+let bancoPosts = load('lv_banco', BANCO_DEFAULT);
+let bancoFormatAtual = 'Reels';
+let bancoUsados = load('lv_banco_usados', {});
+
+function switchCalTab(tab){
+  document.getElementById('cal-panel-calendario').style.display = tab==='calendario' ? '' : 'none';
+  document.getElementById('cal-panel-banco').style.display      = tab==='banco'      ? '' : 'none';
+  document.getElementById('cal-tab-calendario').classList.toggle('active', tab==='calendario');
+  document.getElementById('cal-tab-banco').classList.toggle('active', tab==='banco');
+  if(tab==='banco') renderBanco();
+}
+
+function switchBancoTab(formato, btn){
+  bancoFormatAtual = formato;
+  document.querySelectorAll('.banco-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBanco();
+}
+
+function renderBanco(){
+  const el = document.getElementById('banco-content');
+  if(!el) return;
+  const CAT_COLOR = {educativo:'blue',sabor:'red',producao:'green',bastidores:'brown',social:'green',engajamento:'amber'};
+  const filtered = bancoPosts.filter(p=>p.formato===bancoFormatAtual);
+  if(!filtered.length){
+    el.innerHTML='<p style="color:var(--text-light);font-size:13px;padding:20px 0;">Nenhuma ideia neste formato ainda. Clique em "Gerar novas ideias com IA".</p>';
+    return;
+  }
+  el.innerHTML = '<div class="banco-grid">' + filtered.map(post=>{
+    const usado = bancoUsados[post.id];
+    return `<div class="banco-card ${usado?'usado':''}" id="banco-card-${post.id}">
+      <div class="banco-card-header">
+        <div>
+          <span class="badge badge-${post.color||CAT_COLOR[post.cat]||'amber'}" style="margin-bottom:6px;display:inline-block;">${post.label}</span>
+          <div class="banco-card-title">${post.titulo}</div>
+        </div>
+        <button onclick="deleteBancoPost('${post.id}')" title="Remover ideia"
+          style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:14px;flex-shrink:0;padding:0;">✕</button>
+      </div>
+      <div class="banco-card-desc">${post.desc}</div>
+      <div class="banco-card-caption">"${post.legenda}"</div>
+      <div class="banco-card-footer">
+        ${usado?'<span style="font-size:11px;color:var(--text-light);">✓ Já usado</span>':''}
+        <button class="btn btn-brown" style="font-size:11px;padding:5px 12px;margin-left:auto;"
+          onclick="openAddToCal('${post.id}')">+ Usar no calendário</button>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function deleteBancoPost(id){
+  if(!confirm('Remover esta ideia do banco?')) return;
+  bancoPosts = bancoPosts.filter(p=>p.id!==id);
+  save('lv_banco', bancoPosts);
+  renderBanco();
+  showToast('Ideia removida.');
+}
+
+// Mini modal to pick day when adding to calendar
+let _addToCal_postId = null;
+function openAddToCal(postId){
+  _addToCal_postId = postId;
+  const dias = ['Quarta','Quinta','Sexta','Sábado','Domingo'];
+  const existing = document.getElementById('add-to-cal-modal');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'add-to-cal-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(61,43,26,.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `<div style="background:#fff;border-radius:var(--radius);padding:24px;max-width:340px;width:100%;">
+    <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--brown);margin-bottom:4px;">Adicionar ao calendário</div>
+    <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;">Em qual dia desta semana?</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${dias.map((d,i)=>`<button class="btn btn-brown" style="text-align:left;padding:10px 14px;" onclick="confirmAddToCal(${i})">${d}</button>`).join('')}
+    </div>
+    <button onclick="document.getElementById('add-to-cal-modal').remove()" style="margin-top:12px;width:100%;padding:8px;border:1px solid var(--cream-border);border-radius:8px;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text-mid);">Cancelar</button>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function confirmAddToCal(dayIdx){
+  const post = bancoPosts.find(p=>p.id===_addToCal_postId);
+  if(!post) return;
+  calendarPosts.push({
+    day:     dayIdx,
+    cat:     post.cat,
+    label:   post.label,
+    color:   post.color,
+    title:   post.titulo,
+    format:  post.formato,
+    horario: '',
+    desc:    post.desc,
+    caption: post.legenda,
+  });
+  save('lv_calendar', calendarPosts);
+  // Mark as used
+  bancoUsados[post.id] = true;
+  save('lv_banco_usados', bancoUsados);
+  document.getElementById('add-to-cal-modal').remove();
+  renderBanco();
+  renderCalendar();
+  showToast('✓ Post adicionado ao calendário de ' + ['Quarta','Quinta','Sexta','Sábado','Domingo'][dayIdx] + '!');
+}
+
+async function generateMoreIdeas(){
+  const btn = document.getElementById('gen-more-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ai-loading"></span> Gerando...';
+  const formato = bancoFormatAtual;
+  const menuItems = Object.entries(getMenu()).filter(([,v])=>v.ativo).map(([n])=>n).join(', ') || pizzas.slice(0,8).map(p=>p.nome).join(', ');
+  const mes = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  const prompt = `Você cria conteúdo para a La Vera Pizza Napoletana, pizzaria artesanal no Brasil com forno a lenha e massa de fermentação longa.
+
+Pizzas disponíveis: ${menuItems}
+Mês atual: ${mes}
+Formato solicitado: ${formato}
+
+Gere 6 ideias NOVAS e CRIATIVAS de ${formato} para redes sociais, cobrindo diferentes categorias: educativo, sabores, produção/bastidores, prova social e engajamento.
+
+Responda SOMENTE com array JSON válido (sem markdown), cada item com:
+- id: string única começando com "ai_" + número aleatório
+- formato: "${formato}"
+- cat: uma de: educativo, sabor, producao, bastidores, social, engajamento
+- label: emoji + nome da categoria
+- color: blue/red/green/brown/amber
+- titulo: string curta e impactante
+- desc: roteiro/dicas de produção (2-3 frases)
+- legenda: legenda para publicar nas redes (tom próximo, autêntico)`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,
+        system:'Responda SOMENTE com JSON válido, sem markdown.',
+        messages:[{role:'user',content:prompt}]})
+    });
+    const data = await resp.json();
+    const text = (data.content&&data.content[0]?data.content[0].text:'').replace(/```json|```/g,'').trim();
+    const newIdeas = JSON.parse(text);
+    bancoPosts = [...bancoPosts, ...newIdeas];
+    save('lv_banco', bancoPosts);
+    renderBanco();
+    showToast('✨ ' + newIdeas.length + ' novas ideias adicionadas!');
+  } catch(e){
+    showToast('Erro ao gerar ideias. Tente novamente.');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✨ Gerar novas ideias com IA';
+  }
+}
+
+
+function addIngredient(){
+  const nome       = document.getElementById('new-ingr-name').value.trim();
+  const preco      = parseFloat(document.getElementById('new-ingr-preco').value)||0;
+  const qtd_compra = parseFloat(document.getElementById('new-ingr-qtd-compra').value)||1;
+  const un_compra  = document.getElementById('new-ingr-un-compra').value||'g';
+  if(!nome){showToast('Informe o nome do ingrediente.');return;}
+  if(!qtd_compra){showToast('Informe a quantidade comprada.');return;}
+  const uc = un_compra.toLowerCase();
+  const qtd_base   = uc==='kg' ? qtd_compra*1000 : qtd_compra;
+  const un_base    = uc==='un' ? 'un' : 'g';
+  const custo_base = qtd_base > 0 ? preco/qtd_base : 0;
+  ingredients.push({nome,preco,qtd_compra,un_compra,qtd_base,un_base,custo_base,obs:''});
+  save('lv_ingredients',ingredients);
+  document.getElementById('new-ingr-name').value='';
+  document.getElementById('new-ingr-preco').value='';
+  document.getElementById('new-ingr-qtd-compra').value='';
+  document.getElementById('new-ingr-un-compra').value='g';
+  renderIngredients();
+  showToast('Ingrediente adicionado!');
+}
+
+
+function deleteIngredient(i){
+  if(!confirm('Excluir "'+ingredients[i].nome+'"?')) return;
+  ingredients.splice(i, 1);
+  save('lv_ingredients', ingredients);
+  renderIngredients();
+  showToast('Ingrediente excluído.');
+}
+
+
+// ══════════ PROJEÇÃO ══════════
+function getFinMonths(){
+  // Collect all months from both platforms
+  const months = {};
+  ['keeta','ifood'].forEach(plat=>{
+    Object.entries(FIN_DATA[plat]||{}).forEach(([mo,d])=>{
+      if(!months[mo]) months[mo] = {bruto:0,liquido:0,pedidos:0,comissao:0,plats:[]};
+      months[mo].bruto    += d.bruto    ||0;
+      months[mo].liquido  += d.liquido  ||0;
+      months[mo].pedidos  += d.pedidos  ||0;
+      months[mo].comissao += d.comissao ||0;
+      months[mo].plats.push(plat);
+    });
+  });
+  return months;
+}
+
+function renderProjecao(){
+  const months = getFinMonths();
+  const monthKeys = Object.keys(months).sort();
+  const alert = document.getElementById('proj-base-alert');
+
+  if(!monthKeys.length){
+    if(alert) alert.style.display='block';
+    document.getElementById('proj-auto-content').innerHTML='<p style="color:var(--text-light);font-size:13px;">Importe dados financeiros para ver a projeção.</p>';
+    renderBreakEven();
+    return;
+  }
+  if(alert) alert.style.display='none';
+
+  // Calc averages from real data
+  const avgBruto   = months[monthKeys[0]] ? monthKeys.reduce((s,m)=>s+months[m].bruto,0)   / monthKeys.length : 0;
+  const avgLiq     = monthKeys.reduce((s,m)=>s+months[m].liquido,0)   / monthKeys.length;
+  const avgPedidos = monthKeys.reduce((s,m)=>s+months[m].pedidos,0)   / monthKeys.length;
+  const avgTicket  = avgBruto > 0 ? avgBruto / avgPedidos : 0;
+  const avgTaxa    = avgBruto > 0 ? (avgBruto - avgLiq) / avgBruto : 0;
+
+  const growth = (parseFloat(document.getElementById('proj-growth')?.value)||0)/100;
+  const projBruto   = avgBruto   * (1 + growth);
+  const projPedidos = Math.round(avgPedidos * (1 + growth));
+  const projLiq     = projBruto  * (1 - avgTaxa);
+
+  // Costs
+  const custoFixo   = totalCustos();
+  const custoPizza  = avgBruto > 0 ? (pizzas.reduce((s,p)=>s+calcPizzaCost(p),0)/pizzas.length) : 0;
+  const custoVar    = custoPizza * projPedidos;
+  const lucro       = projLiq - custoFixo - custoVar;
+
+  // Per platform split based on history
+  const keetaShare = monthKeys.reduce((s,m)=>{
+    const k=FIN_DATA.keeta[m];return s+(k?k.bruto:0);
+  },0) / (monthKeys.reduce((s,m)=>s+months[m].bruto,0)||1);
+  const ifoodShare = 1 - keetaShare;
+
+  const R = v => 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const P = v => parseFloat(v||0).toFixed(1)+'%';
+  const MONTH_NEXT = new Date(); MONTH_NEXT.setMonth(MONTH_NEXT.getMonth()+1);
+  const nextMonthLabel = MONTH_NEXT.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  document.getElementById('proj-auto-content').innerHTML = `
+    <div style="font-size:12px;color:var(--text-light);margin-bottom:12px;">
+      Base: média de ${monthKeys.length} ${monthKeys.length===1?'mês':'meses'} importados
+      ${growth!==0?` · crescimento aplicado: ${growth>0?'+':''}${(growth*100).toFixed(0)}%`:''}
+    </div>
+
+    <!-- KPIs projetados -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
+      <div class="kpi"><div class="kpi-label">Pedidos projetados</div><div class="kpi-val">${projPedidos}</div><div class="kpi-sub">média atual: ${Math.round(avgPedidos)}</div></div>
+      <div class="kpi"><div class="kpi-label">Ticket médio</div><div class="kpi-val amber">${R(avgTicket)}</div><div class="kpi-sub">baseado no histórico</div></div>
+      <div class="kpi"><div class="kpi-label">Faturamento bruto</div><div class="kpi-val green">${R(projBruto)}</div><div class="kpi-sub">após ${growth!==0?(growth>0?'+':'')+(growth*100).toFixed(0)+'%':''} crescimento</div></div>
+      <div class="kpi"><div class="kpi-label">Líquido (após taxas)</div><div class="kpi-val green">${R(projLiq)}</div><div class="kpi-sub">taxa média: ${P(avgTaxa*100)}</div></div>
+      <div class="kpi"><div class="kpi-label">Custo fixo</div><div class="kpi-val red">${R(custoFixo)}</div><div class="kpi-sub">custos indiretos</div></div>
+      <div class="kpi"><div class="kpi-label">Lucro estimado</div>
+        <div class="kpi-val ${lucro>=0?'green':'red'}">${R(lucro)}</div>
+        <div class="kpi-sub">${P(lucro/projBruto*100)} margem</div>
+      </div>
+    </div>
+
+    <!-- Por plataforma -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div style="background:#fff;border:1px solid var(--cream-border);border-radius:var(--radius);padding:14px;border-top:3px solid #FF6B35;">
+        <div style="font-size:12px;font-weight:500;color:#FF6B35;margin-bottom:8px;">🟠 Keeta — ${P(keetaShare*100)} do volume</div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;">
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-light)">Bruto projetado</span><strong>${R(projBruto*keetaShare)}</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-light)">Líquido estimado</span><strong style="color:var(--green)">${R(projBruto*keetaShare*(1-(FIN_DATA.keeta[monthKeys[monthKeys.length-1]]?.taxa_efetiva||24)/100))}</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-light)">Pedidos</span><strong>${Math.round(projPedidos*keetaShare)}</strong></div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--cream-border);border-radius:var(--radius);padding:14px;border-top:3px solid #EA1D2C;">
+        <div style="font-size:12px;font-weight:500;color:#EA1D2C;margin-bottom:8px;">🔴 iFood — ${P(ifoodShare*100)} do volume</div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;">
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-light)">Bruto projetado</span><strong>${R(projBruto*ifoodShare)}</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-light)">Líquido estimado</span><strong style="color:var(--green)">${R(projBruto*ifoodShare*(1-(FIN_DATA.ifood[monthKeys[monthKeys.length-1]]?.taxa_efetiva||26)/100))}</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-light)">Pedidos</span><strong>${Math.round(projPedidos*ifoodShare)}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    ${lucro < 0 ? `<div class="alert-red alert-box">🔴 <div>Com este crescimento, o lucro estimado ainda é negativo. Seria necessário reduzir custos ou aumentar o volume de pedidos para atingir o equilíbrio.</div></div>` : ''}
+    ${lucro >= 0 && lucro < projBruto*0.1 ? `<div class="alert-amber alert-box">⚠️ <div>Margem de lucro abaixo de 10%. Considere revisar os custos fixos ou aumentar o ticket médio.</div></div>` : ''}
+  `;
+
+  renderSimulador();
+  renderBreakEven();
+}
+
+function renderSimulador(){
+  const el = document.getElementById('sim-content');
+  if(!el) return;
+  const metaBruto   = parseFloat(document.getElementById('sim-meta-bruto')?.value)||0;
+  const ticket      = parseFloat(document.getElementById('sim-ticket')?.value)||0;
+  const dias        = parseFloat(document.getElementById('sim-dias')?.value)||20;
+  const splitKeeta  = (parseFloat(document.getElementById('sim-split-keeta')?.value)||70)/100;
+  const splitIfood  = 1 - splitKeeta;
+
+  if(!metaBruto){ el.innerHTML='<p style="color:var(--text-light);font-size:13px;">Preencha a meta de faturamento para ver a simulação.</p>'; return; }
+
+  const keetaTax = (params.keeta||25)/100;
+  const ifoodTax = (params.ifood||26)/100;
+  const taxaMedia= splitKeeta*keetaTax + splitIfood*ifoodTax;
+  const metaLiq  = metaBruto * (1 - taxaMedia);
+  const custoFixo= totalCustos();
+  const custoPizza= pizzas.length ? pizzas.reduce((s,p)=>s+calcPizzaCost(p),0)/pizzas.length : 0;
+
+  const pedidosNecessarios = ticket > 0 ? Math.ceil(metaBruto / ticket) : 0;
+  const pedidosPorDia = dias > 0 ? (pedidosNecessarios/dias).toFixed(1) : 0;
+  const custoVar   = custoPizza * pedidosNecessarios;
+  const lucroProj  = metaLiq - custoFixo - custoVar;
+  const margem     = metaBruto > 0 ? lucroProj/metaBruto*100 : 0;
+
+  // Use real ticket if available
+  const months = getFinMonths();
+  const monthKeys = Object.keys(months).sort();
+  const ticketReal = monthKeys.length && months[monthKeys[0]]
+    ? (monthKeys.reduce((s,m)=>s+months[m].bruto,0)/monthKeys.length) /
+      (monthKeys.reduce((s,m)=>s+months[m].pedidos,0)/monthKeys.length)
+    : 0;
+  const ticketUsado = ticket || ticketReal;
+
+  const R = v => 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const P = v => parseFloat(v||0).toFixed(1)+'%';
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;">
+      <div class="kpi"><div class="kpi-label">Meta bruto</div><div class="kpi-val">${R(metaBruto)}</div></div>
+      <div class="kpi"><div class="kpi-label">Meta líquido</div><div class="kpi-val green">${R(metaLiq)}</div><div class="kpi-sub">taxa média ${P(taxaMedia*100)}</div></div>
+      <div class="kpi"><div class="kpi-label">Pedidos necessários</div><div class="kpi-val ${pedidosNecessarios>0?'amber':'red'}">${pedidosNecessarios||'—'}</div><div class="kpi-sub">${pedidosPorDia} pedidos/dia</div></div>
+      <div class="kpi"><div class="kpi-label">Custo insumos est.</div><div class="kpi-val red">${R(custoVar)}</div><div class="kpi-sub">R$ ${custoPizza.toFixed(2)}/pizza</div></div>
+      <div class="kpi"><div class="kpi-label">Lucro projetado</div><div class="kpi-val ${lucroProj>=0?'green':'red'}">${R(lucroProj)}</div><div class="kpi-sub">${P(margem)} margem</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div style="background:#fff;border:1px solid var(--cream-border);border-radius:var(--radius);padding:14px;border-top:3px solid #FF6B35;">
+        <div style="font-size:12px;font-weight:500;color:#FF6B35;margin-bottom:8px;">🟠 Keeta — ${P(splitKeeta*100)}</div>
+        <div style="font-size:12px;color:var(--text-mid);">
+          <div>Bruto: <strong>${R(metaBruto*splitKeeta)}</strong></div>
+          <div>Líquido: <strong style="color:var(--green)">${R(metaBruto*splitKeeta*(1-keetaTax))}</strong></div>
+          <div>Pedidos: <strong>${Math.round(pedidosNecessarios*splitKeeta)}</strong></div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--cream-border);border-radius:var(--radius);padding:14px;border-top:3px solid #EA1D2C;">
+        <div style="font-size:12px;font-weight:500;color:#EA1D2C;margin-bottom:8px;">🔴 iFood — ${P(splitIfood*100)}</div>
+        <div style="font-size:12px;color:var(--text-mid);">
+          <div>Bruto: <strong>${R(metaBruto*splitIfood)}</strong></div>
+          <div>Líquido: <strong style="color:var(--green)">${R(metaBruto*splitIfood*(1-ifoodTax))}</strong></div>
+          <div>Pedidos: <strong>${Math.round(pedidosNecessarios*splitIfood)}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    ${ticketReal>0&&!ticket?`<div style="font-size:12px;color:var(--text-light);margin-top:8px;">💡 Ticket médio real dos seus dados: R$ ${ticketReal.toFixed(2)}. Preencha o campo acima para usar um valor diferente.</div>`:''}
+    ${lucroProj<0?`<div class="alert-red alert-box" style="margin-top:12px;">🔴 <div>Com essa meta e ticket médio, o lucro seria negativo (${R(lucroProj)}). Aumente o ticket médio, reduza custos ou ajuste a meta.</div></div>`:''}
+  `;
+}
+
+function renderBreakEven(){
+  const el = document.getElementById('breakeven-content');
+  if(!el) return;
+  const custoFixo = totalCustos();
+  const custoPizza= pizzas.length ? pizzas.reduce((s,p)=>s+calcPizzaCost(p),0)/pizzas.length : 0;
+
+  const months = getFinMonths();
+  const monthKeys = Object.keys(months).sort();
+  const ticketMedio = monthKeys.length
+    ? (monthKeys.reduce((s,m)=>s+months[m].bruto,0)/monthKeys.length) /
+      (monthKeys.reduce((s,m)=>s+months[m].pedidos,0)/monthKeys.length)
+    : 85;
+  const keetaTax = (params.keeta||25)/100;
+  const ifoodTax = (params.ifood||26)/100;
+  const taxaMedia = 0.5*keetaTax + 0.5*ifoodTax;
+  const ticketLiq = ticketMedio * (1 - taxaMedia);
+  const margemContrib = ticketLiq - custoPizza;
+  const breakEvenPedidos = margemContrib > 0 ? Math.ceil(custoFixo / margemContrib) : null;
+  const breakEvenFaturamento = breakEvenPedidos ? breakEvenPedidos * ticketMedio : null;
+
+  const R = v => 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  if(!breakEvenPedidos){
+    el.innerHTML='<p style="color:var(--text-light);font-size:13px;">Não foi possível calcular. Verifique os custos e a precificação.</p>';
+    return;
+  }
+
+  const custoInsumosBE = custoPizza * breakEvenPedidos;
+  el.innerHTML = `
+    <div style="margin-bottom:16px;display:flex;flex-direction:column;gap:4px;">
+
+      ${flowBox('Custos fixos mensais', 'Contador, aluguel, internet... O que você paga todo mês.', R(custoFixo), 'red')}
+      ${flowSub(`+ Custo dos ingredientes para ${breakEvenPedidos} pizzas = ${R(custoInsumosBE)}`)}
+      ${flowBox('Total de custos para empatar', 'Fixos + ingredientes. Abaixo disso você tem prejuízo.', R(custoFixo + custoInsumosBE), 'red')}
+      ${flowSub(`Com faturamento bruto de ${R(breakEvenFaturamento)} e taxa média de ${(taxaMedia*100).toFixed(0)}%:`)}
+      ${flowBox('⚖️ Faturamento mínimo necessário', `${breakEvenPedidos} pizzas × ${R(ticketMedio)} ticket médio · ${(breakEvenPedidos/20).toFixed(1)} pedidos/dia`, R(breakEvenFaturamento), 'amber')}
+
+    </div>
+    <div style="background:var(--cream-dark);border-radius:10px;padding:14px;font-size:12px;color:var(--text-mid);line-height:2;">
+      <strong style="color:var(--brown);display:block;margin-bottom:4px;">📌 O que significa "empatar"?</strong>
+      Abaixo de <strong>${R(breakEvenFaturamento)}</strong> você paga mais do que recebe — está no prejuízo.<br>
+      Acima disso, cada pizza a mais vira lucro de <strong>${R(margemContrib)}</strong> (margem de contribuição).<br>
+      <span style="color:var(--text-light);">Conta: custo fixo ${R(custoFixo)} ÷ ${R(margemContrib)} de sobra por pizza = ${breakEvenPedidos} pizzas para empatar.</span>
+    </div>
+  `;
+}
+
+// ══════════ CALCULADORA DE OPERAÇÃO ══════════
+let _calcMode = 'pizzas';
+
+function selectCalcQ(mode, btn){
+  _calcMode = mode;
+  document.querySelectorAll('.calc-q-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCalcInput();
+  document.getElementById('calc-result-area').innerHTML='';
+}
+
+function renderCalcInput(){
+  const el = document.getElementById('calc-input-area');
+  if(!el) return;
+
+  // Get real data for defaults
+  const months = getFinMonths();
+  const monthKeys = Object.keys(months).sort();
+  const avgPedidos = monthKeys.length ? monthKeys.reduce((s,m)=>s+months[m].pedidos,0)/monthKeys.length : 150;
+  const avgBruto   = monthKeys.length ? monthKeys.reduce((s,m)=>s+months[m].bruto,0)/monthKeys.length : 0;
+  const avgTicket  = avgPedidos > 0 && avgBruto > 0 ? avgBruto/avgPedidos : 85;
+  const custoFixo  = totalCustos();
+
+  // Build input based on mode
+  const inputsByMode = {
+    pizzas: {
+      question: 'Quantas pizzas você quer vender no mês?',
+      hint: `Exemplo: 100, 150, 200 pizzas. Seu histórico: <strong>${Math.round(avgPedidos)} pizzas/mês</strong>.`,
+      placeholder: Math.round(avgPedidos).toString(),
+      step: '1', max: '1000',
+      unit: 'pizzas no mês',
+    },
+    meta: {
+      question: 'Quanto você quer faturar no mês? (em reais)',
+      hint: `${avgBruto > 0 ? `Seu faturamento médio atual é <strong>R$ ${avgBruto.toLocaleString('pt-BR',{maximumFractionDigits:0})}</strong>.` : 'Exemplo: R$ 15.000, R$ 20.000.'}`,
+      placeholder: avgBruto > 0 ? Math.round(avgBruto*1.2).toString() : '20000',
+      step: '500', max: '500000',
+      unit: 'reais de faturamento',
+    },
+    ticket: {
+      question: 'Quanto você quer faturar no mês? (em reais)',
+      hint: `Seu ticket médio atual (valor médio por pedido) é <strong>R$ ${avgTicket.toFixed(2).replace('.',',')}</strong>. Veja qual ticket precisaria para atingir sua meta.`,
+      placeholder: avgBruto > 0 ? Math.round(avgBruto*1.2).toString() : '20000',
+      step: '500', max: '500000',
+      unit: 'reais de faturamento',
+    },
+    custo: {
+      question: 'Para quanto você conseguiria reduzir seus custos fixos? (em reais)',
+      hint: `Seus custos fixos atuais são <strong>R$ ${custoFixo.toLocaleString('pt-BR',{maximumFractionDigits:0})}</strong> por mês. Digite um valor menor para ver o impacto no lucro.`,
+      placeholder: custoFixo > 0 ? Math.round(custoFixo*0.8).toString() : '1800',
+      step: '100', max: '50000',
+      unit: 'reais de custo fixo mensal',
+    },
+  };
+
+  const c = inputsByMode[_calcMode];
+  el.innerHTML = `
+    <div style="max-width:480px;margin:0 auto;">
+      <div style="font-size:15px;font-weight:500;color:var(--brown);margin-bottom:6px;">${c.question}</div>
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:12px;line-height:1.6;">${c.hint}</div>
+      <div style="position:relative;margin-bottom:8px;">
+        <input type="number" id="calc-val" placeholder="${c.placeholder}"
+          class="calc-big-input" min="0" step="${c.step}" max="${c.max}"
+          oninput="calcular()"
+          onkeydown="if(event.key==='Enter')calcular()">
+      </div>
+      <div style="font-size:12px;color:var(--text-light);text-align:center;margin-bottom:16px;">← Digite aqui o número de <strong>${c.unit}</strong></div>
+      <button class="btn btn-brown" style="width:100%;padding:12px;font-size:14px;" onclick="calcular()">Calcular →</button>
+    </div>`;
+}
+
+
+function flowBox(label, sub, value, color){
+  const colors = {brown:'var(--brown)',green:'var(--green)',red:'var(--red)',amber:'var(--amber)',default:'var(--brown)'};
+  const bgColors = {green:'var(--green-soft)',red:'var(--red-soft)',amber:'var(--amber-soft)'};
+  const c = colors[color]||colors.default;
+  const bg = bgColors[color]||'#fff';
+  const border = bgColors[color] ? `1px solid ${c}` : '1px solid var(--cream-border)';
+  return `<div style="background:${bg};border:${border};border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div style="font-size:11px;color:${c};text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">${label}</div>
+      ${sub?`<div style="font-size:11px;color:var(--text-mid);">${sub}</div>`:''}
+    </div>
+    <div style="font-family:'Playfair Display',serif;font-size:22px;color:${c};">${value}</div>
+  </div>`;
+}
+function flowSub(text){
+  return `<div style="text-align:center;font-size:12px;color:var(--red);padding:2px 0;">${text}</div>`;
+}
+function flowNote(text){
+  return `<div style="background:var(--cream-dark);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:12px;color:var(--text-mid);line-height:1.8;">${text}</div>`;
+}
+function flowTip(text, type){
+  return `<div class="calc-tip ${type||''}" style="margin-top:8px;">${text}</div>`;
+}
+
+function calcular(){
+  const val = parseFloat(document.getElementById('calc-val')?.value)||0;
+  if(!val) return;
+
+  const R = v => 'R$ ' + parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const months = getFinMonths();
+  const monthKeys = Object.keys(months).sort();
+  const avgBruto   = monthKeys.length ? monthKeys.reduce((s,m)=>s+months[m].bruto,0)/monthKeys.length : 0;
+  const avgPedidos = monthKeys.length ? monthKeys.reduce((s,m)=>s+months[m].pedidos,0)/monthKeys.length : 150;
+  const avgTicket  = avgPedidos > 0 && avgBruto > 0 ? avgBruto/avgPedidos : 85;
+  const keetaTax   = (params.keeta||25)/100;
+  const ifoodTax   = (params.ifood||26)/100;
+  const taxaMedia  = 0.6*keetaTax + 0.4*ifoodTax;
+  const custoFixo  = totalCustos();
+  const custoPizza = pizzas.length ? pizzas.reduce((s,p)=>s+calcPizzaCost(p),0)/pizzas.length : 0;
+
+  let html = '';
+
+  if(_calcMode === 'pizzas'){
+    const bruto   = val * avgTicket;
+    const liquido = bruto * (1 - taxaMedia);
+    const custoVar= custoPizza * val;
+    const lucro   = liquido - custoFixo - custoVar;
+    const porDia  = (val/20).toFixed(1);
+    const ok      = lucro >= 0;
+
+    const taxas = bruto * taxaMedia;
+    html = `
+      <div style="margin-top:20px;">
+        <!-- Fluxo de cima pra baixo -->
+        <div style="display:flex;flex-direction:column;gap:4px;">
+
+          <div style="background:#fff;border:1px solid var(--cream-border);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:11px;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Faturamento bruto</div>
+              <div style="font-size:11px;color:var(--text-mid);">${val} pizzas × ticket médio ${R(avgTicket)}</div>
+            </div>
+            <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--brown);">${R(bruto)}</div>
+          </div>
+
+          <div style="text-align:center;font-size:12px;color:var(--red);padding:2px 0;">− Taxas Keeta/iFood (média ${(taxaMedia*100).toFixed(0)}%) = ${R(taxas)}</div>
+
+          <div style="background:var(--green-soft);border:1px solid var(--green);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">💰 O que cai na sua conta</div>
+              <div style="font-size:11px;color:var(--text-mid);">Bruto menos as taxas das plataformas</div>
+            </div>
+            <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--green);">${R(liquido)}</div>
+          </div>
+
+          <div style="text-align:center;font-size:12px;color:var(--red);padding:2px 0;">− Custo dos ingredientes = ${R(custoVar)} &nbsp;·&nbsp; − Custos fixos = ${R(custoFixo)}</div>
+
+          <div style="background:${ok?'var(--green-soft)':'var(--red-soft)'};border:1px solid ${ok?'var(--green)':'var(--red)'};border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:11px;color:${ok?'var(--green)':'var(--red)'};text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">${ok?'✅ Lucro no mês':'❌ Prejuízo no mês'}</div>
+              <div style="font-size:11px;color:var(--text-mid);">Depois de pagar tudo</div>
+            </div>
+            <div style="font-family:'Playfair Display',serif;font-size:22px;color:${ok?'var(--green)':'var(--red)'};">${R(lucro)}</div>
+          </div>
+
+        </div>
+
+        <div style="background:var(--cream-dark);border-radius:10px;padding:12px 14px;margin-top:12px;font-size:12px;color:var(--text-mid);line-height:1.8;">
+          📊 Para vender <strong>${val} pizzas em 20 dias</strong>, você precisaria receber em média <strong>${porDia} pedidos por dia</strong>.
+        </div>
+
+        ${!ok ? `<div class="calc-tip warn" style="margin-top:8px;">
+          💡 Para empatar as contas, você precisaria vender pelo menos <strong>${Math.ceil(custoFixo/(avgTicket*(1-taxaMedia)-custoPizza))} pizzas</strong>.
+        </div>` : ''}
+      </div>`;
+  }
+
+  else if(_calcMode === 'meta'){
+    const meta    = val;
+    const liquido = meta * (1 - taxaMedia);
+    const pizzasNec = avgTicket > 0 ? Math.ceil(meta/avgTicket) : 0;
+    const porDia  = (pizzasNec/20).toFixed(1);
+    const custoVar= custoPizza * pizzasNec;
+    const lucro   = liquido - custoFixo - custoVar;
+    const crescimento = avgBruto > 0 ? ((meta-avgBruto)/avgBruto*100).toFixed(0) : null;
+
+    const taxas2 = meta * taxaMedia;
+    const custoVar2 = custoPizza * pizzasNec;
+    html = `<div style="margin-top:20px;display:flex;flex-direction:column;gap:4px;">
+      ${flowBox('Meta de faturamento bruto', `${pizzasNec} pizzas × ticket médio ${R(avgTicket)} · ${porDia} pedidos/dia`, R(meta), 'brown')}
+      ${flowSub(`− Taxas Keeta/iFood (média ${(taxaMedia*100).toFixed(0)}%) = ${R(taxas2)}`)}
+      ${flowBox('💰 O que cai na sua conta', 'Bruto menos as taxas das plataformas', R(liquido), 'green')}
+      ${flowSub(`− Custo dos ingredientes = ${R(custoVar2)} &nbsp;·&nbsp; − Custos fixos = ${R(custoFixo)}`)}
+      ${flowBox(lucro>=0?'✅ Lucro no mês':'❌ Prejuízo no mês', 'Depois de pagar tudo', R(lucro), lucro>=0?'green':'red')}
+      ${crescimento!==null ? flowNote(`Sua média atual é <strong>${R(avgBruto)}</strong>. Para chegar em ${R(meta)}, você precisaria crescer <strong>${crescimento>0?'+':''}${crescimento}%</strong>.`) : ''}
+      ${lucro<0 ? flowTip(`⚠️ Mesmo faturando ${R(meta)}, o lucro seria negativo. Tente reduzir custos fixos ou aumentar o ticket médio.`,'warn') : flowTip(`✅ Faturando ${R(meta)}, seu lucro estimado seria de <strong>${R(lucro)}</strong>.`,'')}
+    </div>`;
+  }
+
+  else if(_calcMode === 'ticket'){
+    const meta    = val;
+    const pizzasNec = Math.ceil(meta / avgTicket);
+    const ticketNecSemCrescimento = avgPedidos > 0 ? meta/avgPedidos : 0;
+    const liquido  = meta * (1-taxaMedia);
+    const custoVar = custoPizza * avgPedidos;
+    const lucroAtual = liquido - custoFixo - custoVar;
+    const ticketParaLucro = avgPedidos > 0
+      ? (custoFixo + custoVar + custoFixo*0.15) / (avgPedidos*(1-taxaMedia))
+      : 0;
+
+    const pctAumento = avgTicket > 0 ? (((ticketNecSemCrescimento-avgTicket)/avgTicket)*100).toFixed(1) : 0;
+    const ticketOk = ticketNecSemCrescimento <= avgTicket;
+    html = `<div style="margin-top:20px;display:flex;flex-direction:column;gap:4px;">
+      ${flowBox('Seu ticket médio atual', 'Valor médio por pedido hoje, baseado no histórico', R(avgTicket), 'brown')}
+      ${flowSub(`Para faturar ${R(meta)} vendendo as mesmas ${Math.round(avgPedidos)} pizzas/mês:`)}
+      ${flowBox('Ticket que você precisaria cobrar', `${pctAumento > 0 ? '+'+pctAumento : pctAumento}% em relação ao ticket atual`, R(ticketNecSemCrescimento), ticketOk?'green':'amber')}
+      ${flowSub('Para ter pelo menos 15% de margem de lucro:')}
+      ${flowBox('Ticket mínimo para ter lucro', 'Cobre todos os custos + 15% de margem', R(ticketParaLucro), 'green')}
+      ${flowTip('💡 O ticket médio é o valor médio de cada pedido. Para aumentar: suba o preço das pizzas, crie combos, ou incentive pedidos maiores.','')}
+      ${flowTip('⚠️ Antes de mudar os preços, confira a aba <strong>Precificação</strong> para ver o preço mínimo de cada pizza.','warn')}
+    </div>`;
+  }
+
+  else if(_calcMode === 'custo'){
+    const novoCusto = val;
+    const custoAtual= custoFixo;
+    const economia  = custoAtual - novoCusto;
+    const brutoMedio= avgBruto || (avgPedidos * avgTicket);
+    const taxaMedia2= taxaMedia;
+    const liquido   = brutoMedio * (1-taxaMedia2);
+    const custoVar  = custoPizza * (avgPedidos||150);
+    const lucroAtual= liquido - custoAtual - custoVar;
+    const lucroNovo = liquido - novoCusto - custoVar;
+
+    html = `<div style="margin-top:20px;display:flex;flex-direction:column;gap:4px;">
+      ${flowBox('Custos fixos atuais', 'O que você paga todo mês, independente de vender ou não', R(custoAtual), 'red')}
+      ${flowSub(`Se reduzir para ${R(novoCusto)}, a economia seria de ${R(economia)}/mês`)}
+      ${flowBox('💰 O que entra na conta (mesmos pedidos)', `Líquido médio baseado no histórico`, R(liquido), 'green')}
+      ${flowSub(`− Insumos = ${R(custoVar)} &nbsp;·&nbsp; − Novos custos fixos = ${R(novoCusto)}`)}
+      ${flowBox(lucroNovo>=0?'✅ Novo lucro estimado':'❌ Resultado com novos custos', `Antes era ${R(lucroAtual)} · melhora de ${R(economia)}/mês`, R(lucroNovo), lucroNovo>=0?'green':'red')}
+      ${flowNote(`📅 Essa economia de <strong>${R(economia)}/mês</strong> representa <strong>${R(economia*12)}/ano</strong>.`)}
+      ${flowTip('💡 Reduzir custos fixos melhora o lucro imediatamente, sem depender de vender mais. Revise a aba <strong>Custos Indiretos</strong> para ver onde é possível cortar.','')}
+    </div>`;
+  }
+
+  document.getElementById('calc-result-area').innerHTML = html;
+}
+
+
+// ══════════ PRICING PARAM HELPERS ══════════
+function syncCustoFixoToPricing(){
+  const total = totalCustos();
+  const el = document.getElementById('p-fixo');
+  if(el && total > 0){
+    el.value = total.toFixed(2);
+    params.fixo = total;
+    save('lv_params', params);
+  }
+}
+
+function updateMarkupHint(){
+  const markup = parseFloat(document.getElementById('p-markup')?.value)||2;
+  const el = document.getElementById('markup-hint');
+  if(!el) return;
+  const custEx = 30;
+  const precoMinEx = (custEx * markup).toFixed(2).replace('.',',');
+  const lucroEx = (custEx * (markup - 1)).toFixed(2).replace('.',',');
+
+  let nivel = '';
+  let cor = '';
+  let conselho = '';
+  if(markup < 1.5){
+    nivel = '⚠️ Markup muito baixo';
+    cor = 'var(--red)';
+    conselho = 'Com esse markup, qualquer imprevisto (ingrediente mais caro, mês fraco) pode te deixar no prejuízo. Considere aumentar.';
+  } else if(markup < 2){
+    nivel = '⚠️ Markup baixo';
+    cor = 'var(--amber)';
+    conselho = 'Dá para operar, mas com pouca margem de segurança. Se um custo subir, o lucro some rápido.';
+  } else if(markup <= 2.5){
+    nivel = '✅ Markup saudável';
+    cor = 'var(--green)';
+    conselho = 'Bom equilíbrio entre preço competitivo e margem de lucro. Recomendado para a maioria das pizzarias.';
+  } else if(markup <= 3){
+    nivel = '✅ Markup confortável';
+    cor = 'var(--green)';
+    conselho = 'Boa margem. Só verifique se os preços finais ainda são competitivos com o mercado local.';
+  } else {
+    nivel = '⚠️ Markup muito alto';
+    cor = 'var(--amber)';
+    conselho = 'Margem excelente, mas preços muito acima do mercado podem afastar clientes. Verifique a competitividade.';
+  }
+
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-size:12px;color:var(--text-mid);line-height:1.8;">
+      <strong style="color:var(--brown);">O que é markup?</strong><br>
+      É o quanto você multiplica o custo para chegar no preço de venda mínimo.
+      Ele existe para garantir que, além de pagar ingredientes e custos fixos, você também <strong>tenha lucro</strong>.
+      Sem markup adequado, você pode estar trabalhando muito e ganhando pouco — ou até tendo prejuízo sem perceber.
+    </div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-mid);line-height:1.9;margin-bottom:8px;">
+      <strong style="color:var(--brown);">Exemplo com markup ${markup}×:</strong><br>
+      Pizza com custo total de R$ 30,00<br>
+      → Preço mínimo: R$ 30,00 × ${markup} = <strong>R$ ${precoMinEx}</strong> (antes das taxas da plataforma)<br>
+      → Desse preço, R$ 30,00 paga os custos e <strong>R$ ${lucroEx} é seu lucro bruto</strong>
+    </div>
+    <div style="font-size:12px;font-weight:500;color:${cor};">${nivel}</div>
+    <div style="font-size:11px;color:var(--text-mid);margin-top:2px;">${conselho}</div>`;
+}
+
+function updateVendasHint(){
+  const vendas = parseFloat(document.getElementById('p-vendas')?.value)||0;
+  const el = document.getElementById('vendas-hint');
+  if(!el) return;
+  // Try to get from imported data
+  const months = getFinMonths();
+  const monthKeys = Object.keys(months).sort();
+  const avgReal = monthKeys.length
+    ? monthKeys.reduce((s,m)=>s+months[m].pedidos,0)/monthKeys.length
+    : 0;
+  if(avgReal > 0){
+    const diff = vendas - avgReal;
+    const pct = ((diff/avgReal)*100).toFixed(0);
+    el.innerHTML = avgReal > 0
+      ? `Sua média real é <strong>${Math.round(avgReal)} pizzas/mês</strong>. ${diff > 0 ? `Você está projetando +${pct}% acima da média.` : diff < 0 ? `Você está projetando ${pct}% abaixo da média.` : 'Igual à sua média real.'}`
+      : 'Quantas pizzas você vende em média por mês';
+  } else {
+    el.innerHTML = 'Quantas pizzas você vende em média por mês. Importe dados financeiros para ver sua média real.';
+  }
+}
+
+
 // ══════════ UTILS ══════════
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+
+// ══════════ CUSTOS ══════════
+function renderCustos(){
+  document.getElementById('custos-tbody').innerHTML=custos.map((c,i)=>`<tr>
+    <td><input type="text" value="${c.nome}" style="border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);width:100%;" onchange="custos[${i}].nome=this.value;save('lv_custos',custos);"></td>
+    <td><input type="number" value="${c.valor||''}" placeholder="0" step="0.01" min="0"
+      style="width:90px;border:1px solid var(--cream-border);border-radius:6px;padding:4px 8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--cream);color:var(--text);"
+      oninput="custos[${i}].valor=parseFloat(this.value)||0;save('lv_custos',custos);updateCustosCalc();"></td>
+    <td><button class="btn btn-red" style="padding:3px 10px;font-size:11px;" onclick="custos.splice(${i},1);save('lv_custos',custos);renderCustos();">✕</button></td>
+  </tr>`).join('');
+  const v=document.getElementById('custos-vendas');if(v&&!v.value)v.value=params.vendas;
+  updateCustosCalc();
+}
+
+function updateCustosCalc(){
+  const total=totalCustos();
+  const el=document.getElementById('custos-total');if(el)el.textContent='R$ '+total.toFixed(2).replace('.',',');
+  const vendas=parseFloat(document.getElementById('custos-vendas')?.value)||params.vendas;
+  const pp=vendas>0?total/vendas:0;const pct=pp/85*100;
+  const cpp=document.getElementById('custo-por-pizza');const cpct=document.getElementById('custo-pct');
+  if(cpp)cpp.textContent='R$ '+pp.toFixed(2).replace('.',',');
+  if(cpct)cpct.textContent=pct.toFixed(1)+'%';
+  const al=document.getElementById('custos-alerta');
+  if(al){al.style.display=pct>30?'block':'none';if(pct>30)al.textContent='⚠️ Custo indireto acima de 30% do ticket médio.';}
+}
+
+function addCusto(){
+  const nome=document.getElementById('new-custo-nome').value.trim();
+  const valor=parseFloat(document.getElementById('new-custo-valor').value)||0;
+  if(!nome)return;
+  custos.push({nome,valor});save('lv_custos',custos);
+  document.getElementById('new-custo-nome').value='';document.getElementById('new-custo-valor').value='';
+  renderCustos();syncCustoFixoToPricing();showToast('Custo adicionado!');
+}
+
+function syncCustosToParams(){
+  const total=totalCustos();
+  const vendas=parseFloat(document.getElementById('custos-vendas')?.value)||params.vendas;
+  params.fixo=total;params.vendas=vendas;save('lv_params',params);
+  const pf=document.getElementById('p-fixo');const pv=document.getElementById('p-vendas');
+  if(pf)pf.value=total;if(pv)pv.value=vendas;
+  showToast('✓ Sincronizado! Custo fixo: R$ '+total.toFixed(2));
+}
+
+// ══════════ INGREDIENTS ══════════
+function calcCustoBase(ingr){
+  const uc=(ingr.un_compra||'g').toLowerCase().trim();
+  let qtd_base_g;
+  if(uc==='kg'){qtd_base_g=(ingr.qtd_compra||1)*1000;}
+  else{qtd_base_g=ingr.qtd_compra||1;}
+  ingr.qtd_base=qtd_base_g;
+  ingr.un_base=uc==='un'?'un':'g';
+  return qtd_base_g>0?ingr.preco/qtd_base_g:0;
+}
+
+function renderIngredients(){
+  const UN_OPTIONS=['g','kg','un'];
+  const UN_LABELS={'g':'g','kg':'kg','un':'unidade'};
+  const sorted=[...ingredients.map((ingr,i)=>({...ingr,_i:i}))].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  document.getElementById('ingr-tbody').innerHTML=sorted.map((ingr)=>{
+    const i=ingr._i;
+    const cb=calcCustoBase(ingr);ingr.custo_base=cb;
+    const unOpts=UN_OPTIONS.map(u=>`<option value="${u}" ${(ingr.un_compra||'g')===u?'selected':''}>${UN_LABELS[u]||u}</option>`).join('');
+    return `<tr>
+      <td style="font-weight:500;font-size:13px">${ingr.nome}</td>
+      <td><input type="number" value="${ingr.preco}" step="0.01" min="0"
+        onchange="updateIngr(${i},'preco',this.value)"
+        style="width:76px;border:1px solid var(--cream-border);border-radius:6px;padding:4px 6px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--cream);color:var(--text);"></td>
+      <td><input type="number" value="${ingr.qtd_compra||1}" step="0.1" min="0"
+        onchange="updateIngr(${i},'qtd_compra',this.value)"
+        style="width:56px;border:1px solid var(--cream-border);border-radius:6px;padding:4px 6px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--cream);color:var(--text);"></td>
+      <td><select onchange="updateIngr(${i},'un_compra',this.value)"
+        style="border:1px solid var(--cream-border);border-radius:6px;padding:4px 6px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--cream);color:var(--text);cursor:pointer;">
+        ${unOpts}</select></td>
+      <td style="color:var(--text-mid);font-size:12px;text-align:center">${ingr.qtd_base}</td>
+      <td style="color:var(--text-light);font-size:12px">${ingr.un_base}</td>
+      <td style="font-weight:500;color:var(--green);font-size:12px">R$&nbsp;${cb.toFixed(4)}</td>
+      <td>
+        <input type="text" value="${ingr.obs||''}" placeholder="dd/mm/aaaa"
+          onchange="updateIngr(${i},'obs',this.value)"
+          style="width:86px;border:1px solid var(--cream-border);border-radius:6px;padding:4px 6px;font-family:'DM Sans',sans-serif;font-size:11px;background:var(--cream);color:var(--text-mid);">
+        <button onclick="updateIngr(${i},'obs','${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}')"
+          title="Marcar hoje" style="border:none;background:none;cursor:pointer;font-size:13px;padding:0 2px;vertical-align:middle;">📅</button>
+      </td>
+      <td><button onclick="deleteIngredient(${i})" title="Excluir ingrediente"
+        style="border:none;background:none;cursor:pointer;color:var(--text-light);font-size:16px;padding:0 4px;"
+        onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-light)'">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateIngr(i,field,val){
+  const ingr=ingredients[i];
+  const oldPreco=ingr.preco,oldUnCompra=ingr.un_compra||'g',oldQtdCompra=ingr.qtd_compra||1;
+  const numFields=['preco','qtd_compra','qtd_base'];
+  ingr[field]=numFields.includes(field)?(parseFloat(val)||0):val;
+  ingr.custo_base=calcCustoBase(ingr);
+  const newPreco=ingr.preco,newUnCompra=ingr.un_compra||'g',newQtdCompra=ingr.qtd_compra||1;
+  if(field==='preco'||field==='un_compra'||field==='qtd_compra'){
+    recordPriceChange(ingr.nome,oldPreco,newPreco,oldUnCompra,newUnCompra,oldQtdCompra,newQtdCompra);
+  }
+  save('lv_ingredients',ingredients);
+  renderIngredients();
+  if(document.getElementById('page-pricing').classList.contains('active'))calcPricing();
+  if(field!=='obs')showToast('✓ Atualizado!');
+}
+
+// ══════════ PRICING ══════════
+function getIngrCost(nome){const i=ingredients.find(x=>x.nome===nome);if(!i)return 0;return i.custo_base!==undefined?i.custo_base:(i.preco/i.qtd_base||i.preco/i.qtd||0);}
+function calcPizzaCost(pizza){return pizza.ingredientes.reduce((s,it)=>s+getIngrCost(it.nome)*(it.qtd||0),0);}
+
+function saveParams(){
+  params.fixo=+document.getElementById('p-fixo').value;
+  params.vendas=+document.getElementById('p-vendas').value;
+  params.markup=+document.getElementById('p-markup').value;
+  params.ifood=+document.getElementById('p-ifood').value;
+  params.keeta=+document.getElementById('p-keeta').value;
+  params.outras=+document.getElementById('p-outras').value;
+  save('lv_params',params);
+}
+
+function calcPricing(){
+  const fixo   = +document.getElementById('p-fixo').value   || params.fixo;
+  const vendas = +document.getElementById('p-vendas').value || params.vendas;
+  const markup = +document.getElementById('p-markup').value || params.markup;
+  const ifoodTax = (+document.getElementById('p-ifood').value || params.ifood) / 100;
+  const keetaTax = (+document.getElementById('p-keeta').value || params.keeta) / 100;
+  const outras   = (+document.getElementById('p-outras').value || params.outras) / 100;
+  const indireto = vendas > 0 ? fixo / vendas : 0;
+  const pizza    = pizzas[currentPizzaIdx];
+  const custIngr = calcPizzaCost(pizza);
+  const custTotal= custIngr + indireto;
+  const precoMin = custTotal * markup;
+  const minIfood = precoMin / (1 - ifoodTax - outras);
+  const minKeeta = precoMin / (1 - keetaTax - outras);
+
+  // Read per-platform desired prices (stored on pizza object)
+  const dIfood = pizza.desejadoIfood || pizza.desejado || 0;
+  const dKeeta = pizza.desejadoKeeta || pizza.desejado || 0;
+
+  function calcLucro(preco, tax){
+    if(!preco) return null;
+    return preco * (1 - tax - outras) - custTotal;
+  }
+  const lIf = calcLucro(dIfood, ifoodTax);
+  const lKe = calcLucro(dKeeta, keetaTax);
+
+  const R = v => 'R$ ' + parseFloat(v||0).toFixed(2).replace('.',',');
+  const P = v => parseFloat(v).toFixed(1) + '%';
+  const statusColor = (lucro, preco) => {
+    if(!preco) return 'var(--text-light)';
+    if(lucro >= 0) return 'var(--green)';
+    return 'var(--red)';
+  };
+  const arrow = (preco, minimo) => {
+    if(!preco) return '';
+    if(preco >= minimo) return '<span style="color:var(--green)">✓ acima do mínimo</span>';
+    return '<span style="color:var(--red)">⚠️ abaixo do mínimo</span>';
+  };
+
+  document.getElementById('pricing-result-area').innerHTML = `
+    <!-- Custos -->
+    <div style="background:var(--cream-dark);border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:500;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Composição de custo</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
+        <div class="result-block"><div class="result-label">Ingredientes</div><div class="result-val" style="font-size:18px;">${R(custIngr)}</div></div>
+        <div class="result-block"><div class="result-label">Custo indireto</div><div class="result-val" style="font-size:18px;">${R(indireto)}</div><div class="result-sub">${R(fixo)}÷${vendas}pzs</div></div>
+        <div class="result-block"><div class="result-label">Custo total</div><div class="result-val" style="font-size:20px;color:var(--brown);">${R(custTotal)}</div></div>
+        <div class="result-block" style="background:var(--red-soft);border-radius:8px;padding:8px;">
+          <div class="result-label" style="color:var(--red);">⚠️ Preço mínimo (${markup}×)</div>
+          <div class="result-val" style="font-size:20px;color:var(--red);">${R(precoMin)}</div>
+          <div class="result-sub">antes das taxas</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-platform pricing -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+
+      <!-- iFood -->
+      <div style="background:#fff;border:1px solid var(--cream-border);border-radius:var(--radius);padding:16px;border-top:3px solid #EA1D2C;">
+        <div style="font-size:12px;font-weight:500;color:#EA1D2C;margin-bottom:12px;">🔴 iFood &nbsp;<span style="font-weight:400;color:var(--text-light);">taxa ${(ifoodTax*100).toFixed(0)}%</span></div>
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Mínimo para não ter prejuízo</div>
+        <div style="font-size:20px;font-family:'Playfair Display',serif;color:var(--brown);margin-bottom:12px;">${R(minIfood)}</div>
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Qual preço você quer cobrar?</div>
+        <input type="number" id="desired-ifood" value="${dIfood||''}" placeholder="R$ 0,00" step="0.50" min="0"
+          onchange="updateDesejadoPlat(${currentPizzaIdx},'ifood',this.value)"
+          onblur="updateDesejadoPlat(${currentPizzaIdx},'ifood',this.value)"
+          onkeydown="if(event.key==='Enter')updateDesejadoPlat(${currentPizzaIdx},'ifood',this.value)"
+          style="width:100%;border:2px solid ${dIfood?(lIf>=0?'var(--green)':'var(--red)'):'var(--cream-border)'};border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);background:var(--cream);text-align:center;margin-bottom:6px;">
+        <button onclick="updateDesejadoPlat(${currentPizzaIdx},'ifood',document.getElementById('desired-ifood').value)"
+          style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--cream-border);background:var(--cream-dark);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--brown);margin-bottom:8px;">
+          Calcular →
+        </button>
+        <div id="pricing-ifood-result">
+          <div style="font-size:12px;min-height:20px;">${dIfood?arrow(dIfood,minIfood):''}</div>
+          ${dIfood&&lIf!==null?`
+          <div style="background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <div class="result-block"><div class="result-label">Lucro líquido</div><div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lIf,dIfood)}">${R(lIf)}</div></div>
+            <div class="result-block"><div class="result-label">Margem</div><div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lIf,dIfood)}">${P(lIf/dIfood*100)}</div></div>
+          </div>`:''}
+        </div>
+      </div>
+
+      <!-- Keeta -->
+      <div style="background:#fff;border:1px solid var(--cream-border);border-radius:var(--radius);padding:16px;border-top:3px solid #FF6B35;">
+        <div style="font-size:12px;font-weight:500;color:#FF6B35;margin-bottom:12px;">🟠 Keeta &nbsp;<span style="font-weight:400;color:var(--text-light);">taxa ${(keetaTax*100).toFixed(0)}%</span></div>
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Mínimo para não ter prejuízo</div>
+        <div style="font-size:20px;font-family:'Playfair Display',serif;color:var(--brown);margin-bottom:12px;">${R(minKeeta)}</div>
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Qual preço você quer cobrar?</div>
+        <input type="number" id="desired-keeta" value="${dKeeta||''}" placeholder="R$ 0,00" step="0.50" min="0"
+          onchange="updateDesejadoPlat(${currentPizzaIdx},'keeta',this.value)"
+          onblur="updateDesejadoPlat(${currentPizzaIdx},'keeta',this.value)"
+          onkeydown="if(event.key==='Enter')updateDesejadoPlat(${currentPizzaIdx},'keeta',this.value)"
+          style="width:100%;border:2px solid ${dKeeta?(lKe>=0?'var(--green)':'var(--red)'):'var(--cream-border)'};border-radius:8px;padding:10px 12px;font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);background:var(--cream);text-align:center;margin-bottom:6px;">
+        <button onclick="updateDesejadoPlat(${currentPizzaIdx},'keeta',document.getElementById('desired-keeta').value)"
+          style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--cream-border);background:var(--cream-dark);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--brown);margin-bottom:8px;">
+          Calcular →
+        </button>
+        <div id="pricing-keeta-result">
+          <div style="font-size:12px;min-height:20px;">${dKeeta?arrow(dKeeta,minKeeta):''}</div>
+          ${dKeeta&&lKe!==null?`
+          <div style="background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <div class="result-block"><div class="result-label">Lucro líquido</div><div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lKe,dKeeta)}">${R(lKe)}</div></div>
+            <div class="result-block"><div class="result-label">Margem</div><div style="font-size:18px;font-family:'Playfair Display',serif;color:${statusColor(lKe,dKeeta)}">${P(lKe/dKeeta*100)}</div></div>
+          </div>`:''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Add to menu -->
+    <button class="btn btn-green" style="width:100%;padding:12px;font-size:14px;" onclick="addToMenuFromPricing(${currentPizzaIdx})">
+      🍽️ Salvar preços e adicionar ao Cardápio
+    </button>`;
+}
+
+function updateDesejadoPlat(pi, plat, val){
+  const v = parseFloat(val) || 0;
+  if(plat === 'ifood') pizzas[pi].desejadoIfood = v;
+  else pizzas[pi].desejadoKeeta = v;
+  pizzas[pi].desejado = v;
+  save('lv_pizzas', pizzas);
+  // Recalc without re-rendering the inputs (avoid cursor reset)
+  calcPricingResult();
+}
+
+function calcPricingResult(){
+  // Recalculates only the result cards without touching the input fields
+  const fixo   = +document.getElementById('p-fixo').value   || params.fixo;
+  const vendas = +document.getElementById('p-vendas').value || params.vendas;
+  const markup = +document.getElementById('p-markup').value || params.markup;
+  const ifoodTax = (+document.getElementById('p-ifood').value || params.ifood) / 100;
+  const keetaTax = (+document.getElementById('p-keeta').value || params.keeta) / 100;
+  const outras   = (+document.getElementById('p-outras').value || params.outras) / 100;
+  const indireto = vendas > 0 ? fixo / vendas : 0;
+  const pizza    = pizzas[currentPizzaIdx];
+  const custIngr = calcPizzaCost(pizza);
+  const custTotal= custIngr + indireto;
+  const precoMin = custTotal * markup;
+  const minIfood = precoMin / (1 - ifoodTax - outras);
+  const minKeeta = precoMin / (1 - keetaTax - outras);
+  const dIfood = pizza.desejadoIfood || 0;
+  const dKeeta = pizza.desejadoKeeta || 0;
+  const R = v => 'R$ ' + parseFloat(v||0).toFixed(2).replace('.',',');
+  const P = v => parseFloat(v).toFixed(1) + '%';
+
+  // Update iFood result card
+  const ifEl = document.getElementById('pricing-ifood-result');
+  if(ifEl && dIfood){
+    const lIf = dIfood * (1 - ifoodTax - outras) - custTotal;
+    const ok = dIfood >= minIfood;
+    ifEl.innerHTML = `
+      <div style="font-size:12px;min-height:20px;margin-bottom:6px;">
+        ${ok?'<span style="color:var(--green)">✓ acima do mínimo</span>':'<span style="color:var(--red)">⚠️ abaixo do mínimo</span>'}
+      </div>
+      <div style="background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="result-block">
+          <div class="result-label">Lucro líquido</div>
+          <div style="font-size:18px;font-family:'Playfair Display',serif;color:${lIf>=0?'var(--green)':'var(--red)'}">${R(lIf)}</div>
+        </div>
+        <div class="result-block">
+          <div class="result-label">Margem</div>
+          <div style="font-size:18px;font-family:'Playfair Display',serif;color:${lIf>=0?'var(--green)':'var(--red)'}">${P(lIf/dIfood*100)}</div>
+        </div>
+      </div>`;
+    // Update border color of input
+    const inp = document.getElementById('desired-ifood');
+    if(inp) inp.style.borderColor = ok ? 'var(--green)' : 'var(--red)';
+  }
+
+  // Update Keeta result card
+  const keEl = document.getElementById('pricing-keeta-result');
+  if(keEl && dKeeta){
+    const lKe = dKeeta * (1 - keetaTax - outras) - custTotal;
+    const ok = dKeeta >= minKeeta;
+    keEl.innerHTML = `
+      <div style="font-size:12px;min-height:20px;margin-bottom:6px;">
+        ${ok?'<span style="color:var(--green)">✓ acima do mínimo</span>':'<span style="color:var(--red)">⚠️ abaixo do mínimo</span>'}
+      </div>
+      <div style="background:var(--cream-dark);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="result-block">
+          <div class="result-label">Lucro líquido</div>
+          <div style="font-size:18px;font-family:'Playfair Display',serif;color:${lKe>=0?'var(--green)':'var(--red)'}">${R(lKe)}</div>
+        </div>
+        <div class="result-block">
+          <div class="result-label">Margem</div>
+          <div style="font-size:18px;font-family:'Playfair Display',serif;color:${lKe>=0?'var(--green)':'var(--red)'}">${P(lKe/dKeeta*100)}</div>
+        </div>
+      </div>`;
+    const inp = document.getElementById('desired-keeta');
+    if(inp) inp.style.borderColor = ok ? 'var(--green)' : 'var(--red)';
+  }
+}
+
+function addToMenuFromPricing(idx){
+  const pizza = pizzas[idx];
+  const menu  = getMenu();
+  if(!menu[pizza.nome]) menu[pizza.nome] = {ativo:true, keeta:'', ifood:''};
+  if(pizza.desejadoKeeta) menu[pizza.nome].keeta = pizza.desejadoKeeta.toFixed(2);
+  if(pizza.desejadoIfood) menu[pizza.nome].ifood = pizza.desejadoIfood.toFixed(2);
+  menu[pizza.nome].ativo = true;
+  saveMenu(menu);
+  showToast('✓ ' + pizza.nome + ' adicionada ao cardápio!');
+}
+
+function savePizzaManual(){
+  save('lv_pizzas',pizzas);
+  const btn=document.getElementById('pizza-save-btn');
+  if(btn){btn.textContent='✓ Salvo!';setTimeout(()=>{btn.textContent='💾 Salvar ficha';},2000);}
+  showToast('✓ Ficha salva!');
+}
+
+function renderPizzaSelect(){
+  const sel=document.getElementById('pizza-select');if(!sel)return;
+  sel.innerHTML=pizzas.map((p,i)=>`<option value="${i}">${p.nome}</option>`).join('');
+  sel.value=currentPizzaIdx<pizzas.length?currentPizzaIdx:0;
+}
+
+function renderPizzaDetail(){
+  renderPizzaSelect();
+  const pizza=pizzas[currentPizzaIdx];
+  const detail=document.getElementById('pizza-detail');
+  const rows=pizza.ingredientes.map((item,ii)=>{
+    const custo=getIngrCost(item.nome)*(item.qtd||0);
+    return `<tr><td>${item.nome}</td><td><input type="number" value="${item.qtd||''}" min="0" onchange="updateIngredientQtd(${currentPizzaIdx},${ii},this.value)" style="width:70px;border:1px solid var(--cream-border);border-radius:6px;padding:4px 8px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--cream);"></td><td style="color:var(--text-light)">${ingredients.find(x=>x.nome===item.nome)?.un_base||ingredients.find(x=>x.nome===item.nome)?.unidade||'g'}</td><td style="font-weight:500">R$ ${custo.toFixed(2)}</td><td><button class="btn btn-red" style="padding:4px 10px;font-size:11px" onclick="removeIngredient(${currentPizzaIdx},${ii})">✕</button></td></tr>`;
+  }).join('');
+  const opts=ingredients.map(i=>`<option value="${i.nome}">${i.nome}</option>`).join('');
+  detail.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div class="pizza-detail-name">${pizza.nome}</div>
+      <button class="btn btn-green" id="pizza-save-btn" onclick="savePizzaManual()" style="font-size:12px;">💾 Salvar ficha</button>
+    </div>
+    <table class="ingredients-table"><thead><tr><th>Ingrediente</th><th>Qtd usada</th><th>Unidade</th><th>Custo (R$)</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="add-ingredient">
+      <select id="add-ingr-select">${opts}</select>
+      <input type="number" id="add-ingr-qtd" placeholder="Qtd" min="0">
+      <button class="btn btn-brown" onclick="addIngredientToPizza()">+ Adicionar</button>
+    </div>
+    <!-- Desired prices shown inside calcPricing result area -->
+    <div id="pricing-result-area"></div>`;
+  document.getElementById('p-fixo').value=params.fixo;document.getElementById('p-vendas').value=params.vendas;
+  document.getElementById('p-markup').value=params.markup;document.getElementById('p-ifood').value=params.ifood;
+  document.getElementById('p-keeta').value=params.keeta;document.getElementById('p-outras').value=params.outras;
+  calcPricing();
+}
+
+function updateIngredientQtd(pi,ii,val){
+  pizzas[pi].ingredientes[ii].qtd=parseFloat(val)||0;
+  save('lv_pizzas',pizzas);calcPricing();
+  const btn=document.getElementById('pizza-save-btn');
+  if(btn){btn.textContent='✓ Salvo automaticamente';setTimeout(()=>{btn.textContent='💾 Salvar ficha';},1500);}
+}
+
+function removeIngredient(pi,ii){pizzas[pi].ingredientes.splice(ii,1);save('lv_pizzas',pizzas);renderPizzaDetail();}
+
+function addIngredientToPizza(){
+  const nome=document.getElementById('add-ingr-select').value;
+  const qtd=parseFloat(document.getElementById('add-ingr-qtd').value)||0;
+  if(!nome)return;
+  pizzas[currentPizzaIdx].ingredientes.push({nome,qtd});save('lv_pizzas',pizzas);renderPizzaDetail();showToast('Ingrediente adicionado!');
+}
+
+function updateDesejado(pi,val){pizzas[pi].desejado=parseFloat(val)||0;save('lv_pizzas',pizzas);calcPricing();}
+
+function deletePizza(){
+  if(pizzas.length<=1){showToast('Precisa ter ao menos uma pizza.');return;}
+  if(!confirm('Excluir "'+pizzas[currentPizzaIdx].nome+'"?'))return;
+  pizzas.splice(currentPizzaIdx,1);currentPizzaIdx=Math.max(0,currentPizzaIdx-1);
+  save('lv_pizzas',pizzas);renderPizzaSelect();renderPizzaDetail();showToast('Pizza excluída.');
+}
+
+function createNewPizza(){
+  const nome=document.getElementById('new-pizza-name').value.trim();if(!nome)return;
+  pizzas.push({nome,ingredientes:[{nome:'Massa pizza',qtd:1},{nome:'Caixa de pizza',qtd:1},{nome:'Selo',qtd:1}],desejado:0});
+  save('lv_pizzas',pizzas);currentPizzaIdx=pizzas.length-1;
+  document.getElementById('new-pizza-name').value='';renderPizzaSelect();renderPizzaDetail();showToast('Pizza criada!');
+}
+
+// ══════════ CUSTOS UTILS ══════════
+function totalCustos(){return custos.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);}
 
 // ══════════ INIT ══════════
 document.getElementById('header-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
