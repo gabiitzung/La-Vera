@@ -1375,6 +1375,153 @@ function selectMonth(plat,month){
   renderPlatformPanel(plat,month);
 }
 
+// ── Fluxo Bruto → Líquido (Visão Geral) ──
+function buildFluxoLiquido(plat, d){
+  const bruto = d.bruto || 0, liquido = d.liquido || 0;
+  if(bruto <= 0) return '';
+  const F = v => 'R$&nbsp;' + Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const pct = v => (Math.abs(v)/bruto*100).toFixed(1).replace('.',',') + '%';
+  const platNome = plat === 'keeta' ? 'Keeta' : 'iFood';
+  const oA = plat === 'keeta' ? 'a' : 'o';
+  const noNa = plat === 'keeta' ? 'na' : 'no';
+
+  // Junta todos os pedidos do mês
+  const todos = [];
+  (d.dias||[]).forEach(dia => (dia.pedidos||[]).forEach(p => todos.push(p)));
+
+  let deducoes = [], acrescimos = [], temDetalhe = false;
+
+  if(plat === 'keeta' && todos.length){
+    const soma = f => todos.reduce((a,p) => a + (Math.abs(parseFloat(p[f])||0)), 0);
+    const comB = soma('comBasica'), comD = soma('comDist'), taxO = soma('taxaOnline');
+    const subL = soma('subLoja'), subK = soma('subKeeta');
+    if(comB>0) deducoes.push({label:'Comissão básica', val:comB, sub:'percentual que a Keeta cobra sobre cada pedido'});
+    if(comD>0) deducoes.push({label:'Taxa de distância', val:comD, sub:'cobrada por quilômetro rodado na entrega'});
+    if(taxO>0) deducoes.push({label:'Taxa de pagamento online', val:taxO, sub:'cobrada quando o cliente paga pelo aplicativo'});
+    if(subL>0) deducoes.push({label:'Promoções bancadas pela loja', val:subL, sub:'descontos que saíram do seu bolso', opt:true});
+    if(subK>0) acrescimos.push({label:'Promoções bancadas pela Keeta', val:subK, sub:'desconto que a Keeta pagou no seu lugar'});
+    temDetalhe = (comB+comD+taxO) > 0;
+  }
+  else if(plat === 'ifood' && todos.length){
+    const neg = {}, pos = {}, optKeys = {};
+    todos.forEach(p => (p.linhas||[]).forEach(l => {
+      const t = String(l.tipo||'');
+      if(t === 'Info' || t === 'Entrada Financeira') return;
+      const k = String(l.desc || t || 'Outros').trim();
+      const v = parseFloat(l.valor) || 0;
+      if(t === 'Subsídio') optKeys[k] = true;
+      if(v < 0) neg[k] = (neg[k]||0) + Math.abs(v);
+      else if(v > 0) pos[k] = (pos[k]||0) + v;
+    }));
+    Object.entries(neg).sort((a,b)=>b[1]-a[1]).forEach(([k,v]) =>
+      deducoes.push({label:k, val:v, sub: optKeys[k] ? 'desconto que saiu do seu bolso' : 'cobrado pelo iFood sobre as vendas', opt: !!optKeys[k]}));
+    Object.entries(pos).sort((a,b)=>b[1]-a[1]).forEach(([k,v]) =>
+      acrescimos.push({label:k, val:v, sub:'valor que o iFood pagou no seu lugar'}));
+    temDetalhe = deducoes.length > 0;
+  }
+
+  // Fallback: dados importados antes desta versão (sem detalhe por pedido)
+  if(!temDetalhe){
+    deducoes = []; acrescimos = [];
+    if(d.comissao>0) deducoes.push({label:'Comissão e taxas do '+platNome, val:d.comissao, sub:'total cobrado pela plataforma sobre as vendas'});
+    if(d.subsidio_loja>0) deducoes.push({label:'Promoções bancadas pela loja', val:d.subsidio_loja, sub:'descontos que saíram do seu bolso', opt:true});
+    if(d.subsidio_ifood>0) acrescimos.push({label:'Promoções bancadas pelo iFood', val:d.subsidio_ifood, sub:'valor que o iFood pagou no seu lugar'});
+    if(d.subsidio_keeta>0) acrescimos.push({label:'Promoções bancadas pela Keeta', val:d.subsidio_keeta, sub:'valor que a Keeta pagou no seu lugar'});
+  }
+
+  // Pedidos que a plataforma ainda não repassou (líquido zerado num pedido concluído)
+  const pend = todos.filter(p => Math.abs(parseFloat(p.bruto)||0) > 0 && Math.abs(parseFloat(p.liquido)||0) < 0.005);
+  const pendVal = pend.reduce((s,p) => s + Math.abs(parseFloat(p.bruto)||0), 0);
+
+  // Monta o fluxo: linhas fixas sempre entram; as opcionais só se aproximarem do líquido real
+  const fixas = deducoes.filter(x=>!x.opt);
+  const linhas = fixas.map(x=>({...x, sinal:-1}));
+  let cur = bruto - fixas.reduce((s,x)=>s+x.val, 0);
+  const foraDoFluxo = [];
+
+  const opcionais = [];
+  if(pendVal >= 1) opcionais.push({sinal:-1, pend:true, label:'Pedidos ainda não repassados', val:pendVal,
+    sub: pend.length + (pend.length>1?' pedidos recentes que a plataforma ainda não pagou':' pedido recente que a plataforma ainda não pagou') + ' — deve entrar no próximo repasse'});
+  deducoes.filter(x=>x.opt).forEach(x => opcionais.push({...x, sinal:-1}));
+  acrescimos.forEach(x => opcionais.push({...x, sinal:1}));
+
+  opcionais.forEach(x => {
+    const novo = cur + x.sinal * x.val;
+    if(Math.abs(novo - liquido) < Math.abs(cur - liquido)){ linhas.push(x); cur = novo; }
+    else foraDoFluxo.push(x);
+  });
+
+  const residual = cur - liquido;
+  if(Math.abs(residual) >= 1){
+    linhas.push({
+      label: residual > 0 ? 'Outros descontos e ajustes' : 'Outros créditos e ajustes',
+      val: Math.abs(residual), sinal: residual > 0 ? -1 : 1,
+      sub: 'diferenças de arredondamento, estornos e ajustes do repasse'
+    });
+  }
+
+  const margem = (liquido/bruto*100).toFixed(1).replace('.',',');
+  const totalDescontado = bruto - liquido;
+
+  const linhasHtml = linhas.map(x => {
+    const neg = x.sinal < 0;
+    const cor = x.pend ? 'var(--amber)' : (neg ? 'var(--red)' : 'var(--green)');
+    return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:9px 0;border-bottom:1px solid var(--cream-border);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12.5px;color:var(--text-mid);font-weight:500;">${neg?'−':'+'} ${x.label}</div>
+        ${x.sub?`<div style="font-size:11px;color:var(--text-light);margin-top:1px;line-height:1.4;">${x.sub}</div>`:''}
+      </div>
+      <div style="text-align:right;white-space:nowrap;">
+        <div style="font-size:13px;color:${cor};font-weight:500;">${neg?'−':'+'} ${F(x.val)}</div>
+        <div style="font-size:10.5px;color:var(--text-light);">${pct(x.val)} do bruto</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const notaFora = foraDoFluxo.length
+    ? `<div style="background:var(--cream-dark);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:11.5px;color:var(--text-mid);line-height:1.6;">
+         ℹ️ <strong>Fora do cálculo acima:</strong> ${foraDoFluxo.map(x=>x.label+' ('+F(x.val).replace('&nbsp;',' ')+')').join(' · ')}. ${foraDoFluxo.length>1?'Esses valores aparecem':'Esse valor aparece'} no relatório, mas não ${foraDoFluxo.length>1?'mudam':'muda'} o que ${oA} ${platNome} deposita na sua conta.
+       </div>` : '';
+
+  return `
+  <div class="chart-card" style="margin-bottom:16px;">
+    <div class="chart-title">Do faturamento bruto até o que caiu na conta — ${platNome}</div>
+
+    <div style="background:#fff;border:1px solid var(--cream-border);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <div>
+        <div style="font-size:11px;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Faturamento bruto</div>
+        <div style="font-size:11px;color:var(--text-mid);">${d.pedidos} pedidos · valor dos itens antes de qualquer desconto</div>
+      </div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--brown);white-space:nowrap;">${F(bruto)}</div>
+    </div>
+
+    <div style="background:var(--cream-dark);border-radius:10px;padding:4px 14px 10px;margin:4px 0;">
+      ${linhasHtml}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;">
+        <div style="font-size:12px;color:var(--text-light);">Total descontado pela plataforma</div>
+        <div style="font-size:13px;color:var(--red);font-weight:500;white-space:nowrap;">− ${F(totalDescontado)} <span style="font-size:11px;color:var(--text-light);">(${pct(totalDescontado)})</span></div>
+      </div>
+    </div>
+
+    <div style="background:var(--green-soft);border:1px solid var(--green);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <div>
+        <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">💰 Recebido líquido</div>
+        <div style="font-size:11px;color:var(--text-mid);">o que ${oA} ${platNome} realmente depositou na conta</div>
+      </div>
+      <div style="text-align:right;white-space:nowrap;">
+        <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--green);">${F(liquido)}</div>
+        <div style="font-size:11px;color:var(--text-mid);">${margem}% do bruto</div>
+      </div>
+    </div>
+
+    ${notaFora}
+
+    <div style="font-size:11.5px;color:var(--text-light);line-height:1.6;margin-top:10px;">
+      💡 De cada <strong>R$ 100</strong> vendidos ${noNa} ${platNome}, sobram <strong>R$ ${(liquido/bruto*100).toFixed(2).replace('.',',')}</strong> na conta. Desse valor ainda saem os ingredientes e os custos fixos — o lucro de verdade você vê na aba <strong>Projeção</strong>.
+    </div>
+  </div>`;
+}
+
 function renderPlatformPanel(plat,month){
   renderMonthTabs(plat,month);
   const d=FIN_DATA[plat][month];
@@ -1399,7 +1546,7 @@ function renderPlatformPanel(plat,month){
       <div class="kpi"><div class="kpi-label">Comissão paga</div><div class="kpi-val red">${R(d.comissao)}</div><div class="kpi-sub">${(d.comissao/d.bruto*100).toFixed(1)}% do bruto</div></div>
       ${kpiExtra}
     </div>
-    <div class="breakdown-grid">${breakdownHtml}</div>
+    ${buildFluxoLiquido(plat,d)}
     ${alertasHtml}
     <div class="chart-card"><div class="chart-title">Faturamento por dia — ${MONTH_NAMES[month]||month}</div><div class="bar-chart" id="${chartId}"></div></div>
     <div class="chart-card"><div class="chart-title">Detalhe por dia</div><table class="orders-table"><thead><tr><th>Data</th><th>Pedidos</th><th>Bruto (R$)</th><th>Líquido (R$)</th><th>Desconto plat.</th><th></th></tr></thead><tbody id="${tableId}"></tbody></table></div>`;
@@ -1865,7 +2012,7 @@ function parseIfoodFormatB(wb){
     const taxaEntr = Math.abs(parseFloat(row[iTaxaEntr])||0);
     const serie    = String(row[iSerie]||'');
     const pagForm  = String(row[iPagamento]||'');
-    const comTotal = comissao + taxaServ;
+    const comTotal = comissao; // taxa de serviço é paga pelo cliente, não descontada da loja
 
     if(!byMonth[month])byMonth[month]={pedidos:0,cancelados:0,bruto:0,liquido:0,comissao:0,subsidio_ifood:0,subsidio_loja:0,taxa_efetiva:0,breakdown:[],alertas:[],dias:{}};
     const m=byMonth[month];
@@ -1878,7 +2025,7 @@ function parseIfoodFormatB(wb){
       serie,horario:hora,pagForm,bruto,liquido,plat:'ifood',
       linhas:[
         ...(comissao>0 ?[{desc:'Taxas e comissões',    valor:-comissao,tipo:'Cobrança',resp:'IFOOD'}]:[]),
-        ...(taxaServ>0 ?[{desc:'Taxa de serviço',       valor:-taxaServ, tipo:'Cobrança',resp:'IFOOD'}]:[]),
+        ...(taxaServ>0 ?[{desc:'Taxa de serviço (cliente)', valor:taxaServ, tipo:'Info',    resp:'CLIENTE'}]:[]),
         ...(subIfood>0 ?[{desc:'Incentivo iFood',        valor:subIfood,  tipo:'Subsídio',resp:'IFOOD'}]:[]),
         ...(subLoja>0  ?[{desc:'Incentivo da loja',      valor:-subLoja,  tipo:'Subsídio',resp:'LOJA'}]:[]),
         ...(taxaEntr>0 ?[{desc:'Taxa entrega (cliente)', valor:taxaEntr,  tipo:'Info',   resp:'CLIENTE'}]:[]),
@@ -1891,7 +2038,7 @@ function parseIfoodFormatB(wb){
     m.dias=Object.values(m.dias).sort((a,b)=>{const[da,ma]=a.d.split('/');const[db,mb]=b.d.split('/');return(+ma*100+ +da)-(+mb*100+ +db);});
     const comPct=m.bruto>0?(m.comissao/m.bruto*100).toFixed(1):'0';
     m.breakdown=[
-      {label:'Taxas e comissões ('+comPct+'%)',val:'R$ '+Math.round(m.comissao),sub:'comissão + taxa de serviço',neg:true},
+      {label:'Taxas e comissões ('+comPct+'%)',val:'R$ '+Math.round(m.comissao),sub:'comissão do iFood',neg:true},
     ];
     if(m.subsidio_loja>0)m.breakdown.push({label:'Incentivo da loja',val:'R$ '+m.subsidio_loja.toFixed(0),sub:'promoções bancadas pela loja',neg:true});
     if(m.subsidio_ifood>0)m.breakdown.push({label:'Incentivo iFood',val:'R$ '+m.subsidio_ifood.toFixed(0),sub:'iFood cobriu promoções',neg:false});
