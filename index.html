@@ -355,7 +355,7 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
           <div style="font-size:12px;font-weight:600;color:var(--brown);margin-bottom:4px;">💰 Markup</div>
           <div style="font-size:12px;color:var(--text-mid);line-height:1.7;">
             É o número pelo qual você multiplica o custo para definir o preço mínimo de venda.<br>
-            <strong>Exemplo:</strong> pizza custa R$ 30 e seu markup é 2× → preço mínimo = R$ 60.<br>
+            <strong>Exemplo:</strong> o prato custa R$ 30 e seu markup é 2× → preço mínimo = R$ 60.<br>
             Quanto maior o markup, maior sua margem de lucro.
           </div>
         </div>
@@ -374,7 +374,7 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
           <div style="font-size:12px;color:var(--text-mid);line-height:1.7;">
             O que aumenta conforme você vende mais.<br>
             <strong>Exemplos:</strong> farinha, queijo, tomate, embalagem.<br>
-            Quanto mais pizzas você faz, mais gasta em ingredientes.
+            Quanto mais pratos você faz, mais gasta em ingredientes.
           </div>
         </div>
 
@@ -383,7 +383,7 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
           <div style="font-size:12px;color:var(--text-mid);line-height:1.7;">
             O menor preço que você pode cobrar sem ter prejuízo.<br>
             Abaixo disso, você está pagando para trabalhar.<br>
-            <strong>Fórmula:</strong> (ingredientes + custo fixo por pizza) × markup → dividido pelas taxas da plataforma.
+            <strong>Fórmula:</strong> (ingredientes + custo fixo por prato) × markup → dividido pelas taxas da plataforma.
           </div>
         </div>
 
@@ -407,7 +407,7 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
 
       </div>
       <div style="margin-top:12px;padding:10px 12px;background:var(--green-soft);border-radius:8px;font-size:12px;color:var(--green);line-height:1.7;">
-        💡 <strong>Dica:</strong> Um preço saudável cobre ingredientes + custo fixo + taxa da plataforma <em>e ainda sobra lucro</em>. Se o preço sugerido estiver muito acima do mercado, revise os custos fixos ou aumente o volume de vendas para diluir o custo por pizza.
+        💡 <strong>Dica:</strong> Um preço saudável cobre ingredientes + custo fixo + taxa da plataforma <em>e ainda sobra lucro</em>. Se o preço sugerido estiver muito acima do mercado, revise os custos fixos ou aumente o volume de vendas para diluir o custo por prato.
       </div>
     </div>
   </div>
@@ -426,10 +426,10 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
            style="font-size:10px;color:var(--brown);cursor:pointer;text-decoration:underline;white-space:nowrap;">✏️ Editar</a>
       </div>
 
-      <!-- Pizzas vendidas/mês — com sugestão -->
+      <!-- Pratos vendidos/mês — com sugestão -->
       <div class="param-row">
-        <label>Pizzas vendidas/mês
-          <span id="vendas-hint" style="font-size:10px;color:var(--text-light);font-weight:400;display:block;margin-top:1px;">Quantas pizzas você vende em média por mês</span>
+        <label>Pratos vendidos/mês
+          <span id="vendas-hint" style="font-size:10px;color:var(--text-light);font-weight:400;display:block;margin-top:1px;">Total de pizzas + massas + doces vendidos por mês</span>
         </label>
         <input type="number" id="p-vendas" value="150" oninput="saveParams();calcPricing();updateVendasHint()">
       </div>
@@ -440,6 +440,9 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
           <span style="font-size:10px;color:var(--text-light);font-weight:400;display:block;margin-top:1px;">Quantas vezes o custo total vira preço mínimo</span>
         </label>
         <input type="number" id="p-markup" value="2" step="0.1" min="1" oninput="saveParams();calcPricing();updateMarkupHint()">
+      </div>
+      <div style="background:var(--cream-dark);border-radius:8px;padding:10px 12px;font-size:11.5px;color:var(--text-mid);line-height:1.6;margin-top:4px;margin-bottom:8px;">
+        ⚠️ <strong>Conte todos os pratos, não só as pizzas.</strong> O custo fixo (aluguel, luz, gás) é dividido por esse número. Se você vende 150 pizzas e 40 massas, coloque <strong>190</strong> — senão as massas saem parecendo mais lucrativas do que são e a pizza carrega o aluguel sozinha.
       </div>
       <div id="markup-hint" style="background:var(--cream-dark);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-mid);line-height:1.7;margin-top:4px;">
         <strong style="color:var(--brown);">Markup 2×</strong> significa que o preço mínimo é o dobro do custo.<br>
@@ -460,10 +463,19 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
   </div>
   <div class="pizza-detail-card" id="pizza-detail"></div>
   <div class="card" style="margin-top:16px;">
-    <div class="card-title">➕ Criar nova pizza</div>
+    <div class="card-title">➕ Criar novo produto</div>
+    <div style="font-size:12px;color:var(--text-light);line-height:1.6;margin-bottom:12px;">Escolha a categoria. Se for <strong>Massas</strong>, a ficha já começa com a embalagem de massa no lugar da caixa de pizza.</div>
     <div class="new-pizza-row">
-      <input type="text" id="new-pizza-name" placeholder="Nome da nova pizza">
-      <button class="btn btn-brown" onclick="createNewPizza()">Criar pizza</button>
+      <input type="text" id="new-pizza-name" placeholder="Nome do novo produto">
+      <select id="new-pizza-cat" style="border:1px solid var(--cream-border);border-radius:6px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);cursor:pointer;min-width:140px;">
+        <option value="Clássicas">Clássicas</option>
+        <option value="Especiais">Especiais</option>
+        <option value="Tradicionais">Tradicionais</option>
+        <option value="Massas">Massas</option>
+        <option value="Doces">Doces</option>
+        <option value="Outras">Outras</option>
+      </select>
+      <button class="btn btn-brown" onclick="createNewPizza()">Criar produto</button>
     </div>
   </div>
 </div>
@@ -527,14 +539,14 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
         <div style="font-size:12px;color:var(--text-light);margin-top:4px;">soma de todos os custos indiretos</div>
       </div>
       <div class="card" style="border-top:3px solid var(--green);">
-        <div class="card-title">🍕 Impacto por pizza</div>
+        <div class="card-title">🍕 Impacto por prato</div>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
-          <label style="font-size:12px;color:var(--text-mid);">Pizzas vendidas/mês:</label>
+          <label style="font-size:12px;color:var(--text-mid);">Pratos vendidos/mês:</label>
           <input type="number" id="custos-vendas" style="width:80px;border:1px solid var(--cream-border);border-radius:6px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);" oninput="updateCustosCalc()">
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
           <div style="flex:1;background:var(--cream-dark);border-radius:8px;padding:12px;text-align:center;">
-            <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Custo indireto/pizza</div>
+            <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Custo indireto/prato</div>
             <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--brown);" id="custo-por-pizza">—</div>
           </div>
           <div style="flex:1;background:var(--green-soft);border-radius:8px;padding:12px;text-align:center;">
@@ -584,7 +596,7 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
 
   <div style="margin-top:12px;font-size:12px;color:var(--text-light);line-height:1.6;">
     💡 Preços com fundo verde estão acima do mínimo calculado. Vermelhos estão abaixo — verifique a precificação.
-    Pizzas sem preço aparecem como <strong>Sem preço</strong>.
+    Produtos sem preço aparecem como <strong>Sem preço</strong>.
   </div>
 </div>
 
@@ -870,6 +882,7 @@ const DEFAULT_INGREDIENTS=[
   {nome:"Nozes",            preco:35,   qtd_compra:200,  un_compra:"g",  qtd_base:200,  un_base:"g",  custo_base:0.175,    obs:""},
   {nome:"Caixa de pizza",   preco:2.3,  qtd_compra:1,    un_compra:"un", qtd_base:1,    un_base:"un", custo_base:2.3,      obs:"Atualizado 4/18"},
   {nome:"Selo",             preco:100,  qtd_compra:1000, un_compra:"un", qtd_base:1000, un_base:"un", custo_base:0.1,      obs:""},
+  {nome:"Embalagem de massa",preco:1.8, qtd_compra:1,    un_compra:"un", qtd_base:1,    un_base:"un", custo_base:1.8,      obs:"Confira o preço real"},
 ];
 
 const DEFAULT_PIZZAS=[
@@ -1050,12 +1063,30 @@ async function syncFromSupabase(){
   console.log('[LaVera] Supabase sync completo');
 }
 
-const DATA_VERSION=5;
+const PIZZA_CATEGORIES = {
+  'Margherita':'Clássicas','Lombo Defumado':'Especiais','Burrata & Azeitona':'Especiais',
+  'Cinco Queijos & Mel':'Especiais','Frango':'Tradicionais','Pepperoni':'Tradicionais',
+  'Calabresa':'Tradicionais','Parma':'Especiais','Palmito':'Tradicionais','Atum':'Tradicionais',
+  'Mussarela':'Clássicas','Rúcula & Tomate Seco':'Tradicionais','Quatro Queijos':'Tradicionais',
+  'Abobrinha':'Tradicionais','Escarola':'Tradicionais',
+  'Chocolate':'Doces','Doce de Leite':'Doces','Banoffe':'Doces',
+};
+
+const CATEGORIAS = ['Clássicas','Especiais','Tradicionais','Doces','Massas','Outras'];
+
+// Categoria: primeiro do próprio produto, depois do mapa antigo (compatibilidade)
+function getCat(p){
+  if(typeof p === 'string') return PIZZA_CATEGORIES[p] || 'Outras';
+  return p.categoria || PIZZA_CATEGORIES[p.nome] || 'Outras';
+}
+const DATA_VERSION=6;
 const savedVersion=load('lv_data_version',0);
 if(savedVersion<DATA_VERSION){
-  // Pizzas — merge defaults without overwriting existing
+  // Produtos — merge defaults + garante categoria
   const sp=load('lv_pizzas',[]);const sn=new Set(sp.map(p=>p.nome));
-  save('lv_pizzas',[...sp,...DEFAULT_PIZZAS.filter(p=>!sn.has(p.nome))]);
+  const migratedPizzas=[...sp,...DEFAULT_PIZZAS.filter(p=>!sn.has(p.nome))]
+    .map(p => p.categoria ? p : {...p, categoria: PIZZA_CATEGORIES[p.nome] || 'Outras'});
+  save('lv_pizzas',migratedPizzas);
 
   // Ingredients — migrate old format fields + merge new defaults
   const si=load('lv_ingredients',[]);const sin=new Set(si.map(i=>i.nome));
@@ -2050,15 +2081,6 @@ function parseIfoodFormatB(wb){
   return byMonth;
 }
 // ══════════ CARDÁPIO ══════════
-const PIZZA_CATEGORIES = {
-  'Margherita':'Clássicas','Lombo Defumado':'Especiais','Burrata & Azeitona':'Especiais',
-  'Cinco Queijos & Mel':'Especiais','Frango':'Tradicionais','Pepperoni':'Tradicionais',
-  'Calabresa':'Tradicionais','Parma':'Especiais','Palmito':'Tradicionais','Atum':'Tradicionais',
-  'Mussarela':'Clássicas','Rúcula & Tomate Seco':'Tradicionais','Quatro Queijos':'Tradicionais',
-  'Abobrinha':'Tradicionais','Escarola':'Tradicionais',
-  'Chocolate':'Doces','Doce de Leite':'Doces','Banoffe':'Doces',
-};
-
 function getMenu(){return load('lv_menu',{});}
 function saveMenu(m){save('lv_menu',m);}
 
@@ -2088,12 +2110,12 @@ function renderCardapio(){
   const cats={};
   pizzas.forEach(p=>{
     if(search&&!p.nome.toLowerCase().includes(search))return;
-    const cat=PIZZA_CATEGORIES[p.nome]||'Outras';
+    const cat=getCat(p);
     if(!cats[cat])cats[cat]=[];
     cats[cat].push(p);
   });
 
-  const order=['Clássicas','Especiais','Tradicionais','Doces','Outras'];
+  const order=['Clássicas','Especiais','Tradicionais','Massas','Doces','Outras'];
   const tbody=document.getElementById('menu-tbody');
   if(!tbody)return;
 
@@ -2138,7 +2160,7 @@ function renderCardapio(){
     });
   });
 
-  if(!html)html='<tr><td colspan="6" style="padding:20px;color:var(--text-light);text-align:center;">Nenhuma pizza encontrada. Use a Precificação para adicionar ao cardápio.</td></tr>';
+  if(!html)html='<tr><td colspan="6" style="padding:20px;color:var(--text-light);text-align:center;">Nenhum produto encontrado. Use a Precificação para adicionar ao cardápio.</td></tr>';
   tbody.innerHTML=html;
 }
 
@@ -2196,10 +2218,10 @@ function autoFillPrices(nome,minKeeta,minIfood){
 
 function exportMenuCSV(){
   const menu=getMenu();
-  let csv='Pizza,Categoria,Keeta (R$),iFood (R$),Status\n';
+  let csv='Produto,Categoria,Keeta (R$),iFood (R$),Status\n';
   pizzas.forEach(p=>{
     const m=menu[p.nome]||{};
-    const cat=PIZZA_CATEGORIES[p.nome]||'Outras';
+    const cat=getCat(p);
     const status=m.ativo?'Ativo':'Inativo';
     csv+='"'+p.nome+'","'+cat+'","'+(m.keeta||'')+'","'+(m.ifood||'')+'","'+status+'"\n';
   });
@@ -2434,14 +2456,14 @@ function renderRelatorioPreview(history, from, to){
         <div style="font-size:22px;font-family:'Playfair Display',serif;color:var(--brown);">${history.length}</div>
       </div>
       <div style="background:var(--cream-dark);border-radius:8px;padding:12px;">
-        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Custo indireto/pizza</div>
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">Custo indireto/prato</div>
         <div style="font-size:22px;font-family:'Playfair Display',serif;color:var(--brown);">${R(indireto)}</div>
       </div>
     </div>
     <div style="font-size:12px;color:var(--text-mid);line-height:1.7;background:var(--cream-dark);border-radius:8px;padding:14px;">
-      <strong style="color:var(--brown);display:block;margin-bottom:8px;">Custo atual de cada pizza (para contabilidade)</strong>
+      <strong style="color:var(--brown);display:block;margin-bottom:8px;">Custo atual de cada produto (para contabilidade)</strong>
       <table class="hist-table">
-        <thead><tr><th>Pizza</th><th>Custo ingredientes</th><th>+ Indireto</th><th>Custo total</th></tr></thead>
+        <thead><tr><th>Produto</th><th>Categoria</th><th>Custo ingredientes</th><th>+ Indireto</th><th>Custo total</th></tr></thead>
         <tbody>`;
 
   pizzas.forEach(p => {
@@ -2449,6 +2471,7 @@ function renderRelatorioPreview(history, from, to){
     const ct = ci + indireto;
     html += `<tr>
       <td>${p.nome}</td>
+      <td style="color:var(--text-light);font-size:11px;">${getCat(p)}</td>
       <td>${R(ci)}</td>
       <td>${R(indireto)}</td>
       <td style="font-weight:500">${R(ct)}</td>
@@ -2493,14 +2516,14 @@ function exportRelatorio(){
   const totalInd = custos.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
   const ind = (params.vendas||150)>0 ? totalInd/(params.vendas||150) : 0;
   rows.push('');
-  rows.push('SECAO 3 - CUSTO ATUAL DAS PIZZAS');
-  rows.push('Pizza,Custo ingredientes,Custo indireto,Custo total,Preco desejado Keeta,Preco desejado iFood');
+  rows.push('SECAO 3 - CUSTO ATUAL DOS PRODUTOS');
+  rows.push('Produto,Categoria,Custo ingredientes,Custo indireto,Custo total,Preco desejado Keeta,Preco desejado iFood');
   const menu = getMenu();
   pizzas.forEach(p=>{
     const ci = calcPizzaCost(p);
     const ct = ci + ind;
     const m  = menu[p.nome]||{};
-    rows.push(['"'+p.nome+'"',R(ci),R(ind),R(ct),m.keeta||'',m.ifood||''].join(','));
+    rows.push(['"'+p.nome+'"','"'+getCat(p)+'"',R(ci),R(ind),R(ct),m.keeta||'',m.ifood||''].join(','));
   });
 
   rows.push('');
@@ -2755,7 +2778,7 @@ function exportPrecificacao(){
 
   // Header info
   rows.push('PRECIFICACAO LA VERA');
-  rows.push('Custo fixo mensal: R$ ' + R(fixo) + ' | Pizzas/mes: ' + vendas + ' | Markup: ' + markup + 'x | Taxa iFood: ' + (ifoodTax*100).toFixed(0) + '% | Taxa Keeta: ' + (keetaTax*100).toFixed(0) + '%');
+  rows.push('Custo fixo mensal: R$ ' + R(fixo) + ' | Pratos/mes: ' + vendas + ' | Markup: ' + markup + 'x | Taxa iFood: ' + (ifoodTax*100).toFixed(0) + '% | Taxa Keeta: ' + (keetaTax*100).toFixed(0) + '%');
   rows.push('');
 
   pizzas.forEach(pizza => {
@@ -4075,7 +4098,11 @@ function savePizzaManual(){
 
 function renderPizzaSelect(){
   const sel=document.getElementById('pizza-select');if(!sel)return;
-  sel.innerHTML=pizzas.map((p,i)=>`<option value="${i}">${p.nome}</option>`).join('');
+  const grupos={};
+  pizzas.forEach((p,i)=>{ const cat=getCat(p); (grupos[cat]=grupos[cat]||[]).push({p,i}); });
+  sel.innerHTML = CATEGORIAS.filter(cat=>grupos[cat]).map(cat =>
+    `<optgroup label="${cat}">` + grupos[cat].map(({p,i}) =>
+      `<option value="${i}">${p.nome}</option>`).join('') + `</optgroup>`).join('');
   sel.value=currentPizzaIdx<pizzas.length?currentPizzaIdx:0;
 }
 
@@ -4089,9 +4116,15 @@ function renderPizzaDetail(){
   }).join('');
   const opts=ingredients.map(i=>`<option value="${i.nome}">${i.nome}</option>`).join('');
   detail.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
       <div class="pizza-detail-name">${pizza.nome}</div>
       <button class="btn btn-green" id="pizza-save-btn" onclick="savePizzaManual()" style="font-size:12px;">💾 Salvar ficha</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:var(--text-light);">Categoria:</span>
+      <select onchange="updateCategoria(${currentPizzaIdx},this.value)" style="border:1px solid var(--cream-border);border-radius:6px;padding:5px 10px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--cream);cursor:pointer;">
+        ${CATEGORIAS.map(cat=>`<option value="${cat}" ${getCat(pizza)===cat?'selected':''}>${cat}</option>`).join('')}
+      </select>
     </div>
     <table class="ingredients-table"><thead><tr><th>Ingrediente</th><th>Qtd usada</th><th>Unidade</th><th>Custo (R$)</th><th></th></tr></thead><tbody>${rows}</tbody></table>
     <div class="add-ingredient">
@@ -4126,17 +4159,28 @@ function addIngredientToPizza(){
 function updateDesejado(pi,val){pizzas[pi].desejado=parseFloat(val)||0;save('lv_pizzas',pizzas);calcPricing();}
 
 function deletePizza(){
-  if(pizzas.length<=1){showToast('Precisa ter ao menos uma pizza.');return;}
+  if(pizzas.length<=1){showToast('Precisa ter ao menos um produto.');return;}
   if(!confirm('Excluir "'+pizzas[currentPizzaIdx].nome+'"?'))return;
   pizzas.splice(currentPizzaIdx,1);currentPizzaIdx=Math.max(0,currentPizzaIdx-1);
-  save('lv_pizzas',pizzas);renderPizzaSelect();renderPizzaDetail();showToast('Pizza excluída.');
+  save('lv_pizzas',pizzas);renderPizzaSelect();renderPizzaDetail();showToast('Produto excluído.');
+}
+
+function updateCategoria(pi,val){
+  pizzas[pi].categoria=val; save('lv_pizzas',pizzas);
+  renderPizzaSelect(); renderPizzaDetail(); showToast('Categoria atualizada.');
 }
 
 function createNewPizza(){
   const nome=document.getElementById('new-pizza-name').value.trim();if(!nome)return;
-  pizzas.push({nome,ingredientes:[{nome:'Massa pizza',qtd:1},{nome:'Caixa de pizza',qtd:1},{nome:'Selo',qtd:1}],desejado:0});
+  const cat=document.getElementById('new-pizza-cat')?.value || 'Outras';
+  // Massa começa com embalagem própria; pizza com massa + caixa + selo
+  const base = cat==='Massas'
+    ? [{nome:'Embalagem de massa',qtd:1},{nome:'Selo',qtd:1}]
+    : [{nome:'Massa pizza',qtd:1},{nome:'Caixa de pizza',qtd:1},{nome:'Selo',qtd:1}];
+  pizzas.push({nome,categoria:cat,ingredientes:base,desejado:0});
   save('lv_pizzas',pizzas);currentPizzaIdx=pizzas.length-1;
-  document.getElementById('new-pizza-name').value='';renderPizzaSelect();renderPizzaDetail();showToast('Pizza criada!');
+  document.getElementById('new-pizza-name').value='';renderPizzaSelect();renderPizzaDetail();
+  showToast((cat==='Massas'?'Massa':'Produto')+' criado!');
 }
 
 // ══════════ CUSTOS UTILS ══════════
