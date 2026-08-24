@@ -927,7 +927,15 @@ const DEFAULT_CALENDAR_POSTS=[
 ];
 
 const DAYS=["Quarta","Quinta","Sexta","Sábado","Domingo"];
-const MONTH_NAMES={'04':'Abril 2026','05':'Maio 2026'};
+const MESES_LONGOS={'01':'Janeiro','02':'Fevereiro','03':'Março','04':'Abril','05':'Maio','06':'Junho',
+                   '07':'Julho','08':'Agosto','09':'Setembro','10':'Outubro','11':'Novembro','12':'Dezembro'};
+const MESES_CURTOS={'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun',
+                   '07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
+function fmtMesCurto(m){ return MESES_CURTOS[m] || m; }
+// Chaves são só o mês (MM); o ano vem do calendário
+const MONTH_NAMES = new Proxy({}, {
+  get:(_,m)=> typeof m==='string' && MESES_LONGOS[m] ? MESES_LONGOS[m] : undefined
+});
 
 // ══════════ SUPABASE ══════════
 const SB_URL = 'https://wdszohkrtkbvrwprkyva.supabase.co';
@@ -3217,6 +3225,12 @@ function deleteIngredient(i){
 
 
 // ══════════ PROJEÇÃO ══════════
+// Projeção usa só os meses mais recentes — dados antigos distorcem a média
+const PROJ_JANELA = 3;
+function getProjMonthKeys(months){
+  return Object.keys(months).sort().slice(-PROJ_JANELA);
+}
+
 function getFinMonths(){
   // Collect all months from both platforms
   const months = {};
@@ -3235,7 +3249,8 @@ function getFinMonths(){
 
 function renderProjecao(){
   const months = getFinMonths();
-  const monthKeys = Object.keys(months).sort();
+  const totalMeses = Object.keys(months).length;
+  const monthKeys = getProjMonthKeys(months);
   const alert = document.getElementById('proj-base-alert');
 
   if(!monthKeys.length){
@@ -3277,7 +3292,7 @@ function renderProjecao(){
 
   document.getElementById('proj-auto-content').innerHTML = `
     <div style="font-size:12px;color:var(--text-light);margin-bottom:12px;">
-      Base: média de ${monthKeys.length} ${monthKeys.length===1?'mês':'meses'} importados
+      Base: média dos últimos ${monthKeys.length} ${monthKeys.length===1?'mês':'meses'}${monthKeys.length?' ('+monthKeys.map(fmtMesCurto).join(', ')+')':''}${totalMeses>monthKeys.length?` · ${totalMeses} meses importados no total`:''}
       ${growth!==0?` · crescimento aplicado: ${growth>0?'+':''}${(growth*100).toFixed(0)}%`:''}
     </div>
 
@@ -3398,7 +3413,7 @@ function renderBreakEven(){
   const custoPizza= pizzas.length ? pizzas.reduce((s,p)=>s+calcPizzaCost(p),0)/pizzas.length : 0;
 
   const months = getFinMonths();
-  const monthKeys = Object.keys(months).sort();
+  const monthKeys = getProjMonthKeys(months);
   const ticketMedio = monthKeys.length
     ? (monthKeys.reduce((s,m)=>s+months[m].bruto,0)/monthKeys.length) /
       (monthKeys.reduce((s,m)=>s+months[m].pedidos,0)/monthKeys.length)
