@@ -231,6 +231,9 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
     <button class="sidebar-btn" onclick="showPage('custos',this)" data-page="custos">
       <span class="sb-icon">🏠</span> Custos Indiretos
     </button>
+    <button class="sidebar-btn" onclick="showPage('gastos',this)" data-page="gastos">
+      <span class="sb-icon">🧾</span> Gastos de Mercado
+    </button>
   </div>
   <div class="sidebar-section">
     <button class="sidebar-btn" onclick="showPage('ingredients',this)" data-page="ingredients">
@@ -238,6 +241,9 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
     </button>
   </div>
   <div class="sidebar-section">
+    <button class="sidebar-btn" onclick="showPage('backup',this)" data-page="backup">
+      <span class="sb-icon">💾</span> Backup
+    </button>
     <button class="sidebar-btn" onclick="showPage('historico',this)" data-page="historico">
       <span class="sb-icon">📋</span> Histórico
     </button>
@@ -481,6 +487,111 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
 </div>
 
 <!-- INGREDIENTES -->
+<div class="page" id="page-gastos">
+  <p class="section-title">Gastos de Mercado</p>
+  <p class="section-sub">Anote aqui tudo que você compra: ingredientes, embalagens, material de limpeza. Assim dá para ver quanto sai por mês e o que está pesando mais.</p>
+
+  <div class="card" style="border-top:3px solid var(--green);margin-bottom:16px;">
+    <div class="card-title">➕ Anotar uma compra</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="flex:2;min-width:170px;">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">O que comprou</label>
+        <input type="text" id="g-nome" placeholder="Ex: Mussarela, caixas de pizza..." style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
+      </div>
+      <div style="flex:1;min-width:150px;">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Quantidade <span style="color:var(--text-light);">(opcional)</span></label>
+        <div style="display:flex;gap:5px;">
+          <input type="number" id="g-qtd" placeholder="0" step="0.01" min="0" style="flex:1;min-width:0;border:1px solid var(--cream-border);border-radius:6px;padding:9px 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
+          <select id="g-un" style="width:74px;border:1px solid var(--cream-border);border-radius:6px;padding:9px 6px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);cursor:pointer;">
+            <option value="kg">kg</option><option value="g">g</option>
+            <option value="L">L</option><option value="ml">ml</option>
+            <option value="un">un</option><option value="cx">cx</option>
+            <option value="pct">pct</option><option value="dz">dz</option>
+          </select>
+        </div>
+      </div>
+      <div style="flex:1;min-width:105px;">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Quanto pagou <span style="color:var(--text-light);">(total)</span></label>
+        <input type="number" id="g-valor" placeholder="R$ 0,00" step="0.01" min="0" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
+      </div>
+      <div style="flex:1;min-width:135px;">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Data da compra</label>
+        <input type="date" id="g-data" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
+      </div>
+      <div style="flex:1;min-width:130px;">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Tipo</label>
+        <select id="g-cat" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);cursor:pointer;">
+          <option value="Ingredientes">Ingredientes</option>
+          <option value="Embalagens">Embalagens</option>
+          <option value="Bebidas">Bebidas</option>
+          <option value="Limpeza">Limpeza</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+      <div style="flex:1.5;min-width:150px;">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Onde comprou <span style="color:var(--text-light);">(opcional)</span></label>
+        <input type="text" id="g-local" placeholder="Ex: Atacadão" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
+      </div>
+      <button class="btn btn-brown" onclick="addGasto()" style="padding:10px 20px;">Anotar</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--text-light);margin-top:10px;line-height:1.6;">
+      💡 Não precisa anotar item por item da nota. Se comprou várias coisas de uma vez, pode lançar como <strong>"Compra do mês — Atacadão"</strong> com o valor total e deixar a quantidade em branco.<br>
+      💡 Quando você preenche a quantidade, o portal calcula sozinho <strong>quanto custou o quilo (ou o litro, a unidade)</strong> — assim dá para perceber quando um fornecedor aumentou o preço.
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;" id="gastos-kpis"></div>
+
+  <div class="card" style="border-top:3px solid var(--brown);">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+      <div class="card-title" style="margin:0;">🧾 Compras anotadas</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="g-filtro-mes" onchange="gastosMesFiltro=this.value;renderGastos();" style="border:1px solid var(--cream-border);border-radius:6px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--cream);cursor:pointer;"></select>
+        <button class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:6px 12px;font-size:12px;" onclick="exportGastos()">⬇ Baixar planilha</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="ingr-table">
+        <thead><tr><th>Data</th><th>O que comprou</th><th>Tipo</th><th style="text-align:right;">Qtd</th><th style="text-align:right;">Valor</th><th style="text-align:right;">Preço unit.</th><th></th></tr></thead>
+        <tbody id="gastos-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-backup">
+  <p class="section-title">Backup e Migração</p>
+  <p class="section-sub">Baixe uma cópia de tudo que está guardado no portal, ou restaure a partir de um arquivo salvo.</p>
+
+  <div class="card" style="border-top:3px solid var(--green);margin-bottom:16px;">
+    <div class="card-title">⬇️ Baixar backup completo</div>
+    <div style="font-size:12.5px;color:var(--text-mid);line-height:1.7;margin-bottom:12px;">
+      Gera um arquivo com <strong>tudo</strong>: ingredientes, fichas técnicas, cardápio, custos, gastos, importações do iFood e da Keeta, e o calendário. Guarde esse arquivo em lugar seguro — é o seu seguro contra qualquer problema.
+    </div>
+    <button class="btn btn-brown" onclick="exportarBackup()">Baixar backup agora</button>
+    <div id="backup-status" style="font-size:12px;color:var(--text-light);margin-top:10px;line-height:1.6;"></div>
+    <div id="backup-alt" style="margin-top:12px;"></div>
+  </div>
+
+  <div class="card" style="border-top:3px solid var(--amber);margin-bottom:16px;">
+    <div class="card-title">⬆️ Restaurar de um arquivo</div>
+    <div style="background:var(--amber-soft);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-mid);line-height:1.6;margin-bottom:12px;">
+      ⚠️ <strong>Atenção:</strong> isso substitui os dados atuais pelos do arquivo. Baixe um backup antes, por segurança.
+    </div>
+    <div style="font-size:12px;color:var(--text-mid);margin-bottom:6px;">Escolha o arquivo de backup:</div>
+    <input type="file" id="backup-file" accept=".json,.txt" style="font-size:12px;margin-bottom:12px;display:block;">
+    <div style="font-size:12px;color:var(--text-mid);margin-bottom:6px;">Ou cole aqui o conteúdo do backup:</div>
+    <textarea id="backup-colado" placeholder="Cole aqui o texto do backup, se você o salvou pelo Bloco de Notas" style="width:100%;height:70px;font-family:monospace;font-size:10px;border:1px solid var(--cream-border);border-radius:6px;padding:8px;background:var(--cream);color:var(--text);margin-bottom:12px;"></textarea>
+    <button class="btn btn-brown" onclick="importarBackup()">Restaurar</button>
+    <div id="restore-status" style="font-size:12px;color:var(--text-light);margin-top:10px;line-height:1.6;"></div>
+  </div>
+
+  <div class="card" style="border-top:3px solid var(--brown);">
+    <div class="card-title">🔌 Onde os dados estão guardados</div>
+    <div id="backup-conn" style="font-size:12.5px;color:var(--text-mid);line-height:1.8;"></div>
+  </div>
+</div>
+
 <div class="page" id="page-ingredients">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
     <p class="section-title" style="margin:0;">Ingredientes &amp; Custos</p>
@@ -1066,6 +1177,7 @@ async function syncFromSupabase(){
     if(id==='ingredients'){ingredients=load('lv_ingredients',DEFAULT_INGREDIENTS);renderIngredients();}
     else if(id==='pricing'){pizzas=load('lv_pizzas',DEFAULT_PIZZAS);renderPizzaSelect();renderPizzaDetail();}
     else if(id==='custos'){custos=load('lv_custos',DEFAULT_CUSTOS);renderCustos();}
+    else if(id==='gastos'){renderGastos();}
     else if(id==='calendar'){calendarPosts=load('lv_calendar',DEFAULT_CALENDAR_POSTS);renderCalendar();}
   }
   console.log('[LaVera] Supabase sync completo');
@@ -1129,6 +1241,8 @@ let calendarPosts=load('lv_calendar',DEFAULT_CALENDAR_POSTS);
 let ingredients=load('lv_ingredients',DEFAULT_INGREDIENTS);
 let pizzas=load('lv_pizzas',DEFAULT_PIZZAS);
 let custos=load('lv_custos',DEFAULT_CUSTOS);
+let gastos=[];  // preenchido por syncGastos() a partir de lv_params
+let gastosMesFiltro='todos';
 let donePosts=load('lv_done',{});
 let params=load('lv_params',{fixo:2199,vendas:150,markup:2,ifood:26,keeta:25,outras:0});
 let currentWeekOffset=0,currentPizzaIdx=0;
@@ -1212,6 +1326,8 @@ function showPage(id,btn){
   if(id==='ingredients')renderIngredients();
   if(id==='financial')renderFinancial();
   if(id==='custos')renderCustos();
+  if(id==='gastos')renderGastos();
+  if(id==='backup')renderBackup();
   if(id==='cardapio')renderCardapio();
   if(id==='projecao'){renderProjecao();renderCalcInput();}
   if(id==='historico')initHistorico();
@@ -3781,6 +3897,394 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 
 // ══════════ CUSTOS ══════════
+
+// ══════════ GASTOS DE MERCADO ══════════
+function gastoMesKey(iso){ return (iso||'').slice(0,7); }           // "2026-07"
+function gastoMesLabel(k){
+  if(!k || k.length<7) return k||'—';
+  return (MESES_LONGOS[k.slice(5,7)]||k.slice(5,7)) + ' ' + k.slice(0,4);
+}
+// Preço por unidade — só faz sentido quando a quantidade foi informada
+function precoUnit(g){
+  if(!g.qtd || g.qtd<=0 || !g.valor) return null;
+  return g.valor / g.qtd;
+}
+function fmtDataBR(iso){
+  if(!iso || iso.length<10) return iso||'';
+  return iso.slice(8,10)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4);
+}
+
+function addGasto(){
+  const nome  = document.getElementById('g-nome').value.trim();
+  const valor = parseFloat(document.getElementById('g-valor').value)||0;
+  const data  = document.getElementById('g-data').value;
+  if(!nome){ showToast('Escreva o que você comprou.'); return; }
+  if(valor<=0){ showToast('Coloque quanto você pagou.'); return; }
+  if(!data){ showToast('Escolha a data da compra.'); return; }
+
+  syncGastos();
+  gastos.push({
+    id: 'g'+Date.now()+Math.random().toString(36).slice(2,7),
+    nome, valor, data,
+    qtd:   parseFloat(document.getElementById('g-qtd').value)||0,
+    un:    document.getElementById('g-un').value,
+    cat:   document.getElementById('g-cat').value,
+    local: document.getElementById('g-local').value.trim()
+  });
+  persistGastos();
+
+  document.getElementById('g-nome').value='';
+  document.getElementById('g-valor').value='';
+  document.getElementById('g-qtd').value='';
+  document.getElementById('g-local').value='';
+  // Mantém a data — normalmente ela lança várias compras do mesmo dia
+  renderGastos();
+  showToast('Compra anotada!');
+}
+
+// O Supabase sincroniza em segundo plano e troca o array do cache;
+// por isso relemos o estado antes de mexer, senão gravamos dados velhos.
+// Os gastos ficam guardados DENTRO de lv_params, junto com os parâmetros de
+// precificação. Isso evita depender de uma tabela lv_gastos no Supabase, que
+// não existe. Mutamos o mesmo objeto que a variável `params` aponta, então
+// salvar parâmetros não apaga gastos e vice-versa.
+function gastosStore(){
+  const p = load('lv_params', {}) || {};
+  if(!Array.isArray(p.gastos)) p.gastos = [];
+  return p;
+}
+function syncGastos(){
+  const p = gastosStore();
+  // Quem já usou a versão anterior tem gastos em lv_gastos: traz uma vez só
+  if(!p.gastos.length){
+    const antigos = lsLoad('lv_gastos', null);
+    if(Array.isArray(antigos) && antigos.length){
+      p.gastos = antigos;
+      save('lv_params', p);
+      try{ localStorage.removeItem('lv_gastos'); }catch{}
+    }
+  }
+  gastos = p.gastos;
+  return gastos;
+}
+function persistGastos(){
+  const p = gastosStore();
+  p.gastos = gastos;
+  save('lv_params', p);
+}
+const mesmoId = (a,b) => String(a) === String(b);
+
+function removeGasto(id){
+  syncGastos();
+  const g = gastos.find(x=>mesmoId(x.id,id));
+  if(!g){ showToast('Não encontrei essa compra. Atualize a página.'); return; }
+  if(!confirm('Apagar "'+(g.nome||'esta compra')+'"?')) return;
+  gastos = gastos.filter(x=>!mesmoId(x.id,id));
+  persistGastos();
+  renderGastos();
+  showToast('Compra apagada.');
+}
+
+function updateGasto(id, campo, val){
+  syncGastos();
+  const g = gastos.find(x=>mesmoId(x.id,id));
+  if(!g) return;
+  g[campo] = (campo==='valor'||campo==='qtd') ? (parseFloat(val)||0) : val;
+  persistGastos();
+  renderGastos();
+}
+
+function renderGastos(){
+  const tbody = document.getElementById('gastos-tbody');
+  if(!tbody) return;
+  syncGastos();
+  // Já deixa a data de hoje preenchida
+  const dIn = document.getElementById('g-data');
+  if(dIn && !dIn.value){
+    const n = new Date();
+    dIn.value = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+  }
+  const R = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Filtro de mês
+  const meses = [...new Set(gastos.map(g=>gastoMesKey(g.data)).filter(Boolean))].sort().reverse();
+  const sel = document.getElementById('g-filtro-mes');
+  if(sel){
+    if(gastosMesFiltro!=='todos' && !meses.includes(gastosMesFiltro)) gastosMesFiltro='todos';
+    sel.innerHTML = '<option value="todos">Todos os meses</option>' +
+      meses.map(m=>`<option value="${m}" ${gastosMesFiltro===m?'selected':''}>${gastoMesLabel(m)}</option>`).join('');
+    sel.value = gastosMesFiltro;
+  }
+
+  const lista = gastos
+    .filter(g => gastosMesFiltro==='todos' || gastoMesKey(g.data)===gastosMesFiltro)
+    .sort((a,b)=> (b.data||'').localeCompare(a.data||'') || b.id-a.id);
+
+  // KPIs
+  const kpis = document.getElementById('gastos-kpis');
+  if(kpis){
+    if(!gastos.length){ kpis.innerHTML=''; }
+    else{
+      const totalFiltro = lista.reduce((s,g)=>s+(g.valor||0),0);
+      const mesAtual = meses[0];
+      const totalMesAtual = gastos.filter(g=>gastoMesKey(g.data)===mesAtual).reduce((s,g)=>s+(g.valor||0),0);
+      const porCat = {};
+      lista.forEach(g=>{ porCat[g.cat||'Outros'] = (porCat[g.cat||'Outros']||0)+(g.valor||0); });
+      const topCat = Object.entries(porCat).sort((a,b)=>b[1]-a[1])[0];
+      const mediaMes = meses.length ? gastos.reduce((s,g)=>s+(g.valor||0),0)/meses.length : 0;
+
+      const card = (label,val,sub,cor) => `<div class="card" style="border-top:3px solid ${cor};">
+        <div style="font-size:11px;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">${label}</div>
+        <div style="font-family:'Playfair Display',serif;font-size:24px;color:${cor};">${val}</div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:2px;">${sub}</div>
+      </div>`;
+
+      kpis.innerHTML =
+        card(gastosMesFiltro==='todos'?'Total geral':'Total do mês', R(totalFiltro),
+             lista.length + (lista.length===1?' compra anotada':' compras anotadas'), 'var(--brown)') +
+        card('Mês mais recente', R(totalMesAtual), gastoMesLabel(mesAtual), 'var(--green)') +
+        card('Média por mês', R(mediaMes), meses.length + (meses.length===1?' mês com dados':' meses com dados'), 'var(--green)') +
+        (topCat ? card('Onde mais sai dinheiro', topCat[0], R(topCat[1]) + ' no período', 'var(--amber)') : '');
+    }
+  }
+
+  if(!lista.length){
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text-light);font-size:13px;">'
+      + (gastos.length ? 'Nenhuma compra neste mês.' : 'Nenhuma compra anotada ainda. Use o formulário acima para começar.')
+      + '</td></tr>';
+    return;
+  }
+
+  const inp = 'border:none;background:transparent;font-family:\'DM Sans\',sans-serif;font-size:13px;color:var(--text);width:100%;';
+  let html = '', mesAnterior = null;
+
+  lista.forEach(g => {
+    const mk = gastoMesKey(g.data);
+    if(gastosMesFiltro==='todos' && mk !== mesAnterior){
+      const totMes = lista.filter(x=>gastoMesKey(x.data)===mk).reduce((s,x)=>s+(x.valor||0),0);
+      html += `<tr style="background:var(--cream-dark);">
+        <td colspan="4" style="font-size:12px;font-weight:500;color:var(--brown);padding:8px 10px;">${gastoMesLabel(mk)}</td>
+        <td style="text-align:right;font-size:12px;font-weight:500;color:var(--brown);padding:8px 10px;">${R(totMes)}</td><td></td><td></td></tr>`;
+      mesAnterior = mk;
+    }
+    const pu = precoUnit(g);
+    html += `<tr>
+      <td style="white-space:nowrap;"><input type="date" value="${g.data||''}" style="${inp}" onchange="updateGasto('${g.id}','data',this.value)"></td>
+      <td>
+        <input type="text" value="${(g.nome||'').replace(/"/g,'&quot;')}" style="${inp}" onchange="updateGasto('${g.id}','nome',this.value)">
+        ${g.local?`<div style="font-size:10.5px;color:var(--text-light);margin-top:1px;">${g.local}</div>`:''}
+      </td>
+      <td style="font-size:11px;color:var(--text-light);white-space:nowrap;">${g.cat||'Outros'}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <input type="number" step="0.01" min="0" value="${g.qtd||''}" placeholder="—" style="${inp}text-align:right;width:56px;" onchange="updateGasto('${g.id}','qtd',this.value)"><span style="font-size:11px;color:var(--text-light);">${g.qtd?' '+(g.un||''):''}</span>
+      </td>
+      <td style="text-align:right;white-space:nowrap;"><input type="number" step="0.01" min="0" value="${g.valor||0}" style="${inp}text-align:right;width:76px;" onchange="updateGasto('${g.id}','valor',this.value)"></td>
+      <td style="text-align:right;white-space:nowrap;font-size:12px;color:${pu?'var(--text-mid)':'var(--text-light)'};">${pu?R(pu)+'/'+(g.un||''):'—'}</td>
+      <td><button class="btn btn-red" style="padding:3px 10px;font-size:11px;" onclick="removeGasto('${g.id}')">✕</button></td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+function exportGastos(){
+  if(!gastos.length){ showToast('Nenhuma compra para baixar.'); return; }
+  const esc = s => '"' + String(s==null?'':s).replace(/"/g,'""') + '"';
+  const lista = [...gastos].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  const rows = ['Data,O que comprou,Tipo,Onde comprou,Quantidade,Unidade,Valor,Preco unitario'];
+  lista.forEach(g => {
+    const pu = precoUnit(g);
+    rows.push([esc(fmtDataBR(g.data)),esc(g.nome),esc(g.cat),esc(g.local),
+               g.qtd?g.qtd:'',esc(g.qtd?(g.un||''):''),(g.valor||0).toFixed(2),pu?pu.toFixed(2):''].join(','));
+  });
+  rows.push('');
+  rows.push([esc('TOTAL'),'','','','','',lista.reduce((s,g)=>s+(g.valor||0),0).toFixed(2),''].join(','));
+  const blob = new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'gastos-la-vera.csv';
+  a.click();
+  showToast('Planilha baixada!');
+}
+
+
+// ══════════ BACKUP E MIGRAÇÃO ══════════
+
+// Alguns navegadores e antivírus bloqueiam download de blob, principalmente
+// com tipo application/json. Usamos octet-stream e prendemos o link ao
+// documento antes de clicar — sem isso, alguns navegadores ignoram o clique.
+function baixarArquivo(nome, texto, tipo){
+  try{
+    const blob = new Blob([texto], {type: tipo || 'application/octet-stream'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = nome;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+    return true;
+  }catch(e){
+    console.warn('download bloqueado:', e);
+    return false;
+  }
+}
+
+// Plano B: mostra o conteúdo na tela para copiar e colar
+function mostrarParaCopiar(alvoId, texto, nomeSugerido){
+  const el = document.getElementById(alvoId);
+  if(!el) return;
+  const areaId = alvoId+'-area';
+  el.innerHTML = `
+    <div style="background:var(--amber-soft);border-radius:8px;padding:12px;font-size:12px;color:var(--text-mid);line-height:1.7;">
+      <strong>O navegador bloqueou o download.</strong> Sem problema — copie o texto abaixo e salve você mesma:
+      <ol style="margin:8px 0 0 18px;padding:0;">
+        <li>Clique em <strong>Copiar tudo</strong></li>
+        <li>Abra o <strong>Bloco de Notas</strong></li>
+        <li>Cole (Ctrl+V) e salve como <strong>${nomeSugerido}</strong></li>
+      </ol>
+      <button class="btn btn-brown" style="margin-top:10px;font-size:12px;" onclick="copiarTexto('${areaId}')">📋 Copiar tudo</button>
+      <textarea id="${areaId}" readonly style="width:100%;height:120px;margin-top:10px;font-family:monospace;font-size:10px;border:1px solid var(--cream-border);border-radius:6px;padding:8px;background:#fff;color:var(--text);"></textarea>
+    </div>`;
+  const ta = document.getElementById(areaId);
+  if(ta) ta.value = texto;
+}
+
+function copiarTexto(areaId){
+  const ta = document.getElementById(areaId);
+  if(!ta) return;
+  ta.select();
+  ta.setSelectionRange(0, ta.value.length);
+  let ok = false;
+  try{ ok = document.execCommand('copy'); }catch{}
+  if(!ok && navigator.clipboard){
+    navigator.clipboard.writeText(ta.value).then(()=>showToast('Copiado!'),()=>showToast('Selecione o texto e use Ctrl+C.'));
+    return;
+  }
+  showToast(ok ? 'Copiado!' : 'Selecione o texto e use Ctrl+C.');
+}
+function renderBackup(){
+  const el = document.getElementById('backup-conn');
+  if(!el) return;
+  const proj = (SB_URL||'').replace('https://','').split('.')[0];
+  const linhas = Object.entries(SB_TABLES).map(([k,t])=>{
+    const n = (lsLoad(k,null)!==null) ? '✓ tem dados neste aparelho' : '— vazio neste aparelho';
+    const extra = (k==='lv_params') ? '<div style="font-size:10.5px;color:var(--text-light);padding-left:10px;">↳ os gastos de mercado ficam guardados aqui dentro</div>' : '';
+    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;">
+      <span style="font-family:monospace;font-size:11.5px;">${t}</span>
+      <span style="font-size:11px;color:var(--text-light);">${n}</span></div>${extra}`;
+  }).join('');
+  el.innerHTML = `Projeto Supabase: <strong style="font-family:monospace;font-size:12px;">${proj}</strong>
+    <div style="background:var(--cream-dark);border-radius:8px;padding:10px 12px;margin-top:10px;">${linhas}</div>
+    <div style="font-size:11.5px;color:var(--text-light);margin-top:10px;line-height:1.6;">
+      Para apontar o portal para outro projeto, troque <strong>SB_URL</strong> e <strong>SB_KEY</strong> no começo do arquivo <strong>index.html</strong>.
+    </div>`;
+}
+
+async function exportarBackup(){
+  const st = document.getElementById('backup-status');
+  const chaves = Object.keys(SB_TABLES);
+  const dados = {}; const relato = [];
+  if(st) st.textContent = 'Buscando dados…';
+
+  for(const k of chaves){
+    const tabela = SB_TABLES[k];
+    let valor = null, origem = '';
+    try{
+      valor = await sbGet(tabela);
+      if(valor !== null) origem = 'nuvem';
+    }catch{}
+    if(valor === null){                      // tabela inexistente, offline ou vazia
+      valor = lsLoad(k, null);
+      if(valor !== null) origem = 'aparelho';
+    }
+    if(valor !== null){
+      dados[k] = valor;
+      const n = Array.isArray(valor) ? valor.length : (valor && typeof valor==='object' ? Object.keys(valor).length : 1);
+      relato.push(`${tabela}: ${n} ${n===1?'registro':'registros'} (${origem})`);
+    } else {
+      relato.push(`${tabela}: vazio`);
+    }
+  }
+
+  const pacote = {
+    portal: 'La Vera',
+    versao: 1,
+    gerado_em: new Date().toISOString(),
+    origem: SB_URL,
+    dados
+  };
+  const texto = JSON.stringify(pacote,null,2);
+  const hoje  = new Date().toISOString().slice(0,10);
+  const nome  = 'backup-la-vera-'+hoje+'.json';
+
+  if(st) st.innerHTML = relato.join('<br>');
+  const okDownload = baixarArquivo(nome, texto, 'application/octet-stream');
+
+  if(okDownload){
+    if(st) st.innerHTML = '✅ Backup gerado.<br>' + relato.join('<br>') +
+      '<br><br><span style="color:var(--text-light);">Não apareceu na pasta de downloads? ' +
+      '<a onclick="mostrarParaCopiar(\'backup-alt\', window._ultimoBackup, \'backup-la-vera.json\')" style="color:var(--brown);text-decoration:underline;cursor:pointer;">Copiar o conteúdo na tela</a></span>';
+    showToast('Backup gerado!');
+  } else {
+    mostrarParaCopiar('backup-alt', texto, nome);
+    showToast('Download bloqueado — copie o texto na tela.');
+  }
+  window._ultimoBackup = texto;
+}
+
+async function importarBackup(){
+  const inp = document.getElementById('backup-file');
+  const st  = document.getElementById('restore-status');
+  const arq    = inp && inp.files && inp.files[0];
+  const colado = (document.getElementById('backup-colado')?.value || '').trim();
+
+  let bruto = '';
+  if(arq){
+    try{ bruto = await arq.text(); }
+    catch{ if(st) st.innerHTML = '❌ Não consegui abrir esse arquivo.'; return; }
+  } else if(colado){
+    bruto = colado;
+  } else {
+    showToast('Escolha um arquivo ou cole o texto do backup.');
+    return;
+  }
+
+  let pacote;
+  try{
+    pacote = JSON.parse(bruto);
+  }catch{
+    if(st) st.innerHTML = '❌ Não consegui ler esse conteúdo. Ele precisa ser o backup gerado pelo portal, do começo (<code>{</code>) ao fim (<code>}</code>).';
+    return;
+  }
+  const dados = pacote && pacote.dados;
+  if(!dados || typeof dados !== 'object'){
+    if(st) st.innerHTML = '❌ Esse arquivo não parece ser um backup do portal.';
+    return;
+  }
+
+  const chaves = Object.keys(dados).filter(k => SB_TABLES[k]);
+  if(!chaves.length){ if(st) st.innerHTML = '❌ O arquivo não tem nenhum dado reconhecido.'; return; }
+
+  if(!confirm('Isto vai substituir os dados atuais por '+chaves.length+' conjuntos do arquivo. Continuar?')) return;
+
+  if(st) st.textContent = 'Restaurando…';
+  const relato = [];
+  for(const k of chaves){
+    try{
+      _cache[k] = dados[k];                    // atualiza a memória
+      lsSave(k, dados[k]);                     // grava no aparelho
+      await sbSet(SB_TABLES[k], dados[k]);     // envia uma única vez e espera terminar
+      const v = dados[k];
+      const n = Array.isArray(v) ? v.length : (v && typeof v==='object' ? Object.keys(v).length : 1);
+      relato.push(`✓ ${SB_TABLES[k]}: ${n} ${n===1?'registro':'registros'}`);
+    }catch(e){
+      relato.push(`✗ ${SB_TABLES[k]}: falhou`);
+    }
+  }
+  if(st) st.innerHTML = relato.join('<br>') + '<br><br><strong>Atualize a página</strong> para ver os dados restaurados.';
+  showToast('Restauração concluída.');
+}
+
 function renderCustos(){
   document.getElementById('custos-tbody').innerHTML=custos.map((c,i)=>`<tr>
     <td><input type="text" value="${c.nome}" style="border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);width:100%;" onchange="custos[${i}].nome=this.value;save('lv_custos',custos);"></td>
