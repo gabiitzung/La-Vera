@@ -3899,6 +3899,10 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 // ══════════ CUSTOS ══════════
 
 // ══════════ GASTOS DE MERCADO ══════════
+const GASTO_CATS = ['Ingredientes','Embalagens','Bebidas','Limpeza','Outros'];
+const GASTO_UNS  = ['kg','g','L','ml','un','cx','pct','dz'];
+const opcoes = (lista, atual) => lista.map(o=>`<option value="${o}" ${o===atual?'selected':''}>${o}</option>`).join('');
+
 function gastoMesKey(iso){ return (iso||'').slice(0,7); }           // "2026-07"
 function gastoMesLabel(k){
   if(!k || k.length<7) return k||'—';
@@ -4056,6 +4060,7 @@ function renderGastos(){
   }
 
   const inp = 'border:none;background:transparent;font-family:\'DM Sans\',sans-serif;font-size:13px;color:var(--text);width:100%;';
+  const selSty = 'border:none;background:transparent;font-family:\'DM Sans\',sans-serif;font-size:11px;color:var(--text-light);cursor:pointer;max-width:96px;';
   let html = '', mesAnterior = null;
 
   lista.forEach(g => {
@@ -4072,11 +4077,13 @@ function renderGastos(){
       <td style="white-space:nowrap;"><input type="date" value="${g.data||''}" style="${inp}" onchange="updateGasto('${g.id}','data',this.value)"></td>
       <td>
         <input type="text" value="${(g.nome||'').replace(/"/g,'&quot;')}" style="${inp}" onchange="updateGasto('${g.id}','nome',this.value)">
-        ${g.local?`<div style="font-size:10.5px;color:var(--text-light);margin-top:1px;">${g.local}</div>`:''}
+        <input type="text" value="${(g.local||'').replace(/"/g,'&quot;')}" placeholder="+ onde comprou" style="${inp}font-size:10.5px;color:var(--text-light);margin-top:1px;" onchange="updateGasto('${g.id}','local',this.value)">
       </td>
-      <td style="font-size:11px;color:var(--text-light);white-space:nowrap;">${g.cat||'Outros'}</td>
+      <td style="white-space:nowrap;">
+        <select style="${selSty}" onchange="updateGasto('${g.id}','cat',this.value)">${opcoes(GASTO_CATS, g.cat||'Outros')}</select>
+      </td>
       <td style="text-align:right;white-space:nowrap;">
-        <input type="number" step="0.01" min="0" value="${g.qtd||''}" placeholder="—" style="${inp}text-align:right;width:56px;" onchange="updateGasto('${g.id}','qtd',this.value)"><span style="font-size:11px;color:var(--text-light);">${g.qtd?' '+(g.un||''):''}</span>
+        <input type="number" step="0.01" min="0" value="${g.qtd||''}" placeholder="—" style="${inp}text-align:right;width:52px;" onchange="updateGasto('${g.id}','qtd',this.value)"><select style="${selSty}" onchange="updateGasto('${g.id}','un',this.value)">${opcoes(GASTO_UNS, g.un||'kg')}</select>
       </td>
       <td style="text-align:right;white-space:nowrap;"><input type="number" step="0.01" min="0" value="${g.valor||0}" style="${inp}text-align:right;width:76px;" onchange="updateGasto('${g.id}','valor',this.value)"></td>
       <td style="text-align:right;white-space:nowrap;font-size:12px;color:${pu?'var(--text-mid)':'var(--text-light)'};">${pu?R(pu)+'/'+(g.un||''):'—'}</td>
