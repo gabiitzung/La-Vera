@@ -532,11 +532,10 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
         <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Onde comprou <span style="color:var(--text-light);">(opcional)</span></label>
         <input type="text" id="g-local" placeholder="Ex: Atacadão" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
       </div>
-      <button class="btn btn-brown" onclick="addGasto()" style="padding:10px 20px;">Anotar</button>
+      <button class="btn btn-brown" onclick="addGasto()" style="padding:10px 20px;">💾 Salvar compra</button>
     </div>
     <div style="font-size:11.5px;color:var(--text-light);margin-top:10px;line-height:1.6;">
-      💡 Não precisa anotar item por item da nota. Se comprou várias coisas de uma vez, pode lançar como <strong>"Compra do mês — Atacadão"</strong> com o valor total e deixar a quantidade em branco.<br>
-      💡 Quando você preenche a quantidade, o portal calcula sozinho <strong>quanto custou o quilo (ou o litro, a unidade)</strong> — assim dá para perceber quando um fornecedor aumentou o preço.
+      💡 Não precisa anotar item por item da nota. Se comprou várias coisas de uma vez, pode lançar como <strong>"Compra do mês — Atacadão"</strong> com o valor total e deixar a quantidade em branco.
     </div>
   </div>
 
@@ -3955,26 +3954,73 @@ function addGasto(){
 function gastosStore(){
   const p = load('lv_params', {}) || {};
   if(!Array.isArray(p.gastos)) p.gastos = [];
+  if(Array.isArray(p.gastosDel)){
+    const uniao = [...new Set([...lerApagados(), ...p.gastosDel.map(String)])];
+    lsSave(GASTOS_DEL, uniao);
+  }
   return p;
 }
+// A cópia local fica numa chave PRÓPRIA, fora do SB_TABLES, para que a
+// sincronização do Supabase nunca a sobrescreva. lv_params serve só como
+// canal de sincronização: na leitura juntamos as duas listas.
+const GASTOS_LOCAL = 'lv_gastos';
+const GASTOS_DEL   = 'lv_gastos_del';
+
+function lerLocais(){
+  const v = lsLoad(GASTOS_LOCAL, []);
+  return Array.isArray(v) ? v : [];
+}
+function lerApagados(){
+  const v = lsLoad(GASTOS_DEL, []);
+  return Array.isArray(v) ? v.map(String) : [];
+}
+
+// União por id: nada some porque um aparelho não conhecia o registro.
+// Em conflito, vence quem foi editado por último.
+function juntarGastos(a, b){
+  const apagados = new Set(lerApagados());
+  const mapa = new Map();
+  [...(a||[]), ...(b||[])].forEach(g => {
+    if(!g || !g.id || apagados.has(String(g.id))) return;
+    const k = String(g.id);
+    const anterior = mapa.get(k);
+    if(!anterior || (g.ts||0) >= (anterior.ts||0)) mapa.set(k, g);
+  });
+  return [...mapa.values()].sort((x,y)=>(y.data||'').localeCompare(x.data||''));
+}
+
 function syncGastos(){
   const p = gastosStore();
-  // Quem já usou a versão anterior tem gastos em lv_gastos: traz uma vez só
-  if(!p.gastos.length){
-    const antigos = lsLoad('lv_gastos', null);
-    if(Array.isArray(antigos) && antigos.length){
-      p.gastos = antigos;
-      save('lv_params', p);
-      try{ localStorage.removeItem('lv_gastos'); }catch{}
-    }
-  }
-  gastos = p.gastos;
+  const locais  = lerLocais();
+  const remotos = Array.isArray(p.gastos) ? p.gastos : [];
+  gastos = juntarGastos(locais, remotos);
+
+  // Comparar o conteúdo, não o tamanho: uma correção no mesmo registro
+  // mantém o tamanho igual e precisa ser gravada do mesmo jeito.
+  const igual = (x,y) => JSON.stringify(x) === JSON.stringify(y);
+  if(!igual(gastos, locais)){ lsSave(GASTOS_LOCAL, gastos); }
+  if(!igual(gastos, remotos)){ p.gastos = gastos; save('lv_params', p); }
   return gastos;
 }
+
 function persistGastos(){
+  gastos.forEach(g => { if(!g.ts) g.ts = Date.now(); });
+  lsSave(GASTOS_LOCAL, gastos);          // cópia local, intocável pela nuvem
   const p = gastosStore();
   p.gastos = gastos;
-  save('lv_params', p);
+  save('lv_params', p);                  // canal de sincronização
+}
+
+// Exclusão precisa de lápide, senão o registro volta na próxima sincronização
+function marcarApagado(id){
+  const lista = lerApagados();
+  if(!lista.includes(String(id))){
+    lista.push(String(id));
+    lsSave(GASTOS_DEL, lista);
+    const p = gastosStore();
+    p.gastosDel = lista;
+    save('lv_params', p);
+  }
 }
 const mesmoId = (a,b) => String(a) === String(b);
 
@@ -3984,6 +4030,7 @@ function removeGasto(id){
   if(!g){ showToast('Não encontrei essa compra. Atualize a página.'); return; }
   if(!confirm('Apagar "'+(g.nome||'esta compra')+'"?')) return;
   gastos = gastos.filter(x=>!mesmoId(x.id,id));
+  marcarApagado(id);
   persistGastos();
   renderGastos();
   showToast('Compra apagada.');
@@ -3994,9 +4041,11 @@ function updateGasto(id, campo, val){
   const g = gastos.find(x=>mesmoId(x.id,id));
   if(!g) return;
   g[campo] = (campo==='valor'||campo==='qtd') ? (parseFloat(val)||0) : val;
+  g.ts = Date.now();
   persistGastos();
   renderGastos();
 }
+
 
 function renderGastos(){
   const tbody = document.getElementById('gastos-tbody');
