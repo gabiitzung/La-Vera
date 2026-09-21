@@ -489,73 +489,58 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
 <!-- INGREDIENTES -->
 <div class="page" id="page-gastos">
   <p class="section-title">Gastos de Mercado</p>
-  <p class="section-sub">Anote aqui tudo que você compra: ingredientes, embalagens, material de limpeza. Assim dá para ver quanto sai por mês e o que está pesando mais.</p>
+  <p class="section-sub">Cada ida ao mercado vira uma nota. Aqui você vê quanto gastou em cada mercado e em cada ingrediente no mês.</p>
 
-  <div class="card" style="border-top:3px solid var(--green);margin-bottom:16px;">
-    <div class="card-title">➕ Anotar uma compra</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+    <div style="display:flex;align-items:center;gap:4px;">
+      <button onclick="mudarMes(-1)" title="Mês anterior" style="border:1px solid var(--cream-border);background:var(--cream);border-radius:8px;width:36px;height:36px;font-size:18px;color:var(--brown);cursor:pointer;">‹</button>
+      <div id="g-mes-label" style="font-family:'Playfair Display',serif;font-size:21px;color:var(--brown);min-width:170px;text-align:center;"></div>
+      <button onclick="mudarMes(1)" title="Próximo mês" style="border:1px solid var(--cream-border);background:var(--cream);border-radius:8px;width:36px;height:36px;font-size:18px;color:var(--brown);cursor:pointer;">›</button>
+    </div>
+    <button class="btn btn-brown" onclick="abrirNovaNota()" style="padding:10px 18px;">+ Nova nota</button>
+  </div>
+  <div id="g-mes-total" style="font-size:13px;color:var(--text-mid);margin:0 0 16px 4px;"></div>
+
+  <div id="nova-nota-box" class="card" style="display:none;border-top:3px solid var(--green);margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="card-title" style="margin:0;">🧾 Nova nota</div>
+      <button onclick="fecharNovaNota()" style="border:none;background:transparent;color:var(--text-light);font-size:13px;cursor:pointer;">✕ fechar</button>
+    </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-      <div style="flex:2;min-width:170px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">O que comprou</label>
-        <input type="text" id="g-nome" placeholder="Ex: Mussarela, caixas de pizza..." style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
+      <div style="flex:2;min-width:180px;">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Mercado</label>
+        <select id="n-mercado" onchange="toggleNovoMercado()" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);cursor:pointer;"></select>
+        <input type="text" id="n-mercado-novo" placeholder="Nome do mercado novo" style="display:none;width:100%;margin-top:6px;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
       </div>
-      <div style="flex:1;min-width:150px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Quantidade <span style="color:var(--text-light);">(opcional)</span></label>
-        <div style="display:flex;gap:5px;">
-          <input type="number" id="g-qtd" placeholder="0" step="0.01" min="0" style="flex:1;min-width:0;border:1px solid var(--cream-border);border-radius:6px;padding:9px 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
-          <select id="g-un" style="width:74px;border:1px solid var(--cream-border);border-radius:6px;padding:9px 6px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);cursor:pointer;">
-            <option value="kg">kg</option><option value="g">g</option>
-            <option value="L">L</option><option value="ml">ml</option>
-            <option value="un">un</option><option value="cx">cx</option>
-            <option value="pct">pct</option><option value="dz">dz</option>
-          </select>
-        </div>
+      <div style="flex:1;min-width:140px;">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Data</label>
+        <input type="date" id="n-data" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
       </div>
-      <div style="flex:1;min-width:105px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Quanto pagou <span style="color:var(--text-light);">(total)</span></label>
-        <input type="number" id="g-valor" placeholder="R$ 0,00" step="0.01" min="0" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
+      <div style="flex:1;min-width:120px;">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Total pago (R$)</label>
+        <input type="number" id="n-total" placeholder="0,00" step="0.01" min="0" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
       </div>
-      <div style="flex:1;min-width:135px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Data da compra</label>
-        <input type="date" id="g-data" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
-      </div>
-      <div style="flex:1;min-width:130px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Tipo</label>
-        <select id="g-cat" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);cursor:pointer;">
-          <option value="Ingredientes">Ingredientes</option>
-          <option value="Embalagens">Embalagens</option>
-          <option value="Bebidas">Bebidas</option>
-          <option value="Limpeza">Limpeza</option>
-          <option value="Outros">Outros</option>
-        </select>
-      </div>
-      <div style="flex:1.5;min-width:150px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Onde comprou <span style="color:var(--text-light);">(opcional)</span></label>
-        <input type="text" id="g-local" placeholder="Ex: Atacadão" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
-      </div>
-      <button class="btn btn-brown" onclick="addGasto()" style="padding:10px 20px;">💾 Salvar compra</button>
+      <button class="btn btn-brown" onclick="criarNota()" style="padding:10px 20px;">Criar nota</button>
     </div>
     <div style="font-size:11.5px;color:var(--text-light);margin-top:10px;line-height:1.6;">
-      💡 Não precisa anotar item por item da nota. Se comprou várias coisas de uma vez, pode lançar como <strong>"Compra do mês — Atacadão"</strong> com o valor total e deixar a quantidade em branco.
+      💡 Depois de criar, a nota abre sozinha para você anotar o que comprou, com quantidade e valor de cada item.
+    </div>
+    <div style="margin-top:12px;border-top:1px solid var(--cream-border);padding-top:10px;">
+      <div onclick="toggleMercadosBox()" style="font-size:12px;color:var(--brown);cursor:pointer;user-select:none;"><span id="merc-box-seta">▸</span> Mercados cadastrados</div>
+      <div id="merc-box" style="display:none;margin-top:8px;"></div>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;" id="gastos-kpis"></div>
+  <div id="gastos-resumo"></div>
 
   <div class="card" style="border-top:3px solid var(--brown);">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-      <div class="card-title" style="margin:0;">🧾 Compras anotadas</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <select id="g-filtro-mes" onchange="gastosMesFiltro=this.value;renderGastos();" style="border:1px solid var(--cream-border);border-radius:6px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--cream);cursor:pointer;"></select>
-        <button class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:6px 12px;font-size:12px;" onclick="exportGastos()">⬇ Baixar planilha</button>
-      </div>
+      <div class="card-title" style="margin:0;" id="notas-titulo">📋 Notas</div>
+      <button class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:6px 12px;font-size:12px;" onclick="exportGastos()">⬇ Baixar planilha (todas as notas)</button>
     </div>
-    <div style="overflow-x:auto;">
-      <table class="ingr-table">
-        <thead><tr><th>Data</th><th>O que comprou</th><th>Tipo</th><th style="text-align:right;">Qtd</th><th style="text-align:right;">Valor</th><th style="text-align:right;">Preço unit.</th><th></th></tr></thead>
-        <tbody id="gastos-tbody"></tbody>
-      </table>
-    </div>
+    <div id="notas-lista"></div>
   </div>
+  <datalist id="dl-itens"></datalist>
 </div>
 
 <div class="page" id="page-backup">
@@ -1150,8 +1135,35 @@ function load(k, d){
   return local;
 }
 
+// Proteção das notas de mercado: lv_params é gravado por vários lugares do
+// portal (precificação, custos, abertura), muitas vezes a partir de uma cópia
+// velha do objeto. Antes de gravar, juntamos as notas de todas as fontes
+// conhecidas — assim nenhuma gravação consegue apagar notas de outro aparelho.
+function prepararParams(v){
+  try{
+    if(!v || typeof v !== 'object') return v;
+    const ls = k => { try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch{ return null; } };
+    const cache = (_cache['lv_params'] && typeof _cache['lv_params']==='object') ? _cache['lv_params'] : {};
+    const arr = x => Array.isArray(x) ? x : [];
+    const del = new Set([...arr(ls('lv_notas_del')), ...arr(cache.notasDel), ...arr(v.notasDel)].map(String));
+    const mapa = new Map();
+    [arr(ls('lv_notas')), arr(cache.notas), arr(v.notas)].forEach(l => l.forEach(n => {
+      if(!n || !n.id || del.has(String(n.id))) return;
+      const a = mapa.get(String(n.id));
+      if(!a || (n.ts||0) >= (a.ts||0)) mapa.set(String(n.id), n);
+    }));
+    v.notas = [...mapa.values()].sort((a,b)=>(b.data||'').localeCompare(a.data||'') || String(b.id).localeCompare(String(a.id)));
+    if(del.size) v.notasDel = [...del];
+    const mercs = [ls('lv_mercados'), cache.mercados, v.mercados].filter(m => m && Array.isArray(m.lista));
+    if(mercs.length) v.mercados = mercs.reduce((a,b)=> (b.ts||0) > (a.ts||0) ? b : a);
+    if(!v.gastos && Array.isArray(cache.gastos)) v.gastos = cache.gastos;   // formato antigo, usado na migração
+  }catch(e){ console.warn('prepararParams:', e); }
+  return v;
+}
+
 // save() — writes to cache + localStorage immediately, Supabase async
 function save(k, v){
+  if(k === 'lv_params') v = prepararParams(v);
   _cache[k] = v;
   lsSave(k, v);
   const table = SB_TABLES[k];
@@ -1167,6 +1179,7 @@ async function syncFromSupabase(){
     if(remote !== null){
       _cache[k] = remote;
       lsSave(k, remote);
+      if(k === 'lv_params' && remote && typeof remote === 'object') params = remote;
     }
   }));
   // Refresh UI after sync
@@ -1240,8 +1253,14 @@ let calendarPosts=load('lv_calendar',DEFAULT_CALENDAR_POSTS);
 let ingredients=load('lv_ingredients',DEFAULT_INGREDIENTS);
 let pizzas=load('lv_pizzas',DEFAULT_PIZZAS);
 let custos=load('lv_custos',DEFAULT_CUSTOS);
-let gastos=[];  // preenchido por syncGastos() a partir de lv_params
-let gastosMesFiltro='todos';
+let notas=[];     // notas de mercado — preenchido por syncNotas()
+let mercados=[];  // mercados cadastrados
+let notasAbertas=new Set();
+let gastosMesFiltro=null;   // 'AAAA-MM'; começa no mês atual
+let notaEmEdicao=null, itemEmEdicao=null;
+let gConfirmando=null;   // 'nota:ID' | 'item:NOTA|ITEM' | 'merc:NOME' — confirmação desenhada na tela
+let ingAbertos=new Set(), mercAbertos=new Set();
+let _resumoIng=[], _resumoMerc=[];
 let donePosts=load('lv_done',{});
 let params=load('lv_params',{fixo:2199,vendas:150,markup:2,ifood:26,keeta:25,outras:0});
 let currentWeekOffset=0,currentPizzaIdx=0;
@@ -3897,271 +3916,737 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 // ══════════ CUSTOS ══════════
 
-// ══════════ GASTOS DE MERCADO ══════════
-const GASTO_CATS = ['Ingredientes','Embalagens','Bebidas','Limpeza','Outros'];
-const GASTO_UNS  = ['kg','g','L','ml','un','cx','pct','dz'];
-const opcoes = (lista, atual) => lista.map(o=>`<option value="${o}" ${o===atual?'selected':''}>${o}</option>`).join('');
+// ══════════ CONFIRMAÇÃO À PROVA DE BLOQUEIO ══════════
+// Alguns navegadores (os internos do WhatsApp e do Instagram, ou quando alguém
+// marca "não mostrar mais avisos") bloqueiam a caixa de confirmação: ela
+// devolve "não" na hora, sem aparecer, e a ação não acontece. Uma pessoa não
+// consegue responder em menos de 60 ms, então tratamos isso como bloqueio e
+// pedimos um segundo toque para confirmar.
+(function(){
+  const nativo = window.confirm ? window.confirm.bind(window) : null;
+  const pendentes = {};
+  window.confirm = function(msg){
+    const t0 = Date.now();
+    let r = false;
+    try{ r = nativo ? nativo(msg) : false; }catch{ r = false; }
+    if(r) return true;
+    if(Date.now() - t0 > 60) return false;          // a pessoa viu e escolheu "Cancelar"
+    const k = String(msg);
+    if(pendentes[k] && Date.now() - pendentes[k] < 8000){ delete pendentes[k]; return true; }
+    pendentes[k] = Date.now();
+    try{ showToast('Toque de novo em até 8 segundos para confirmar.'); }catch{}
+    return false;
+  };
+})();
 
-function gastoMesKey(iso){ return (iso||'').slice(0,7); }           // "2026-07"
+// ══════════ GASTOS DE MERCADO (NOTAS) ══════════
+// Cada ida ao mercado é uma NOTA: {id, ts, mercado, data, total, itens:[{id,nome,qtd,un}]}
+//
+// Proteção contra perda (lição aprendida): a cópia local fica em chaves
+// próprias, fora do SB_TABLES, então a sincronização nunca a sobrescreve.
+// lv_params é só o canal entre aparelhos; na leitura JUNTAMOS por id.
+const NOTAS_LOCAL = 'lv_notas';
+const NOTAS_DEL   = 'lv_notas_del';
+const MERC_LOCAL  = 'lv_mercados';
+const GASTO_UNS   = ['kg','g','L','ml','un','cx','pct','dz'];
+
+const escHtml = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const opcoes  = (lista, atual) => lista.map(o=>`<option value="${escHtml(o)}" ${o===atual?'selected':''}>${escHtml(o)}</option>`).join('');
+const novoId  = p => p + Date.now() + Math.random().toString(36).slice(2,7);
+const mesmoId = (a,b) => String(a) === String(b);
+const igualJSON = (x,y) => JSON.stringify(x) === JSON.stringify(y);
+const brl = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function hojeISO(){
+  const n = new Date();
+  return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+}
+function gastoMesKey(iso){ return (iso||'').slice(0,7); }
 function gastoMesLabel(k){
   if(!k || k.length<7) return k||'—';
   return (MESES_LONGOS[k.slice(5,7)]||k.slice(5,7)) + ' ' + k.slice(0,4);
-}
-// Preço por unidade — só faz sentido quando a quantidade foi informada
-function precoUnit(g){
-  if(!g.qtd || g.qtd<=0 || !g.valor) return null;
-  return g.valor / g.qtd;
 }
 function fmtDataBR(iso){
   if(!iso || iso.length<10) return iso||'';
   return iso.slice(8,10)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4);
 }
+function normalizar(s){
+  return String(s||'').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+}
+function hashStr(s){                       // id estável para a migração
+  let h = 5381;
+  for(let i=0;i<s.length;i++) h = ((h<<5)+h + s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+function lerLista(k){ const v = lsLoad(k, []); return Array.isArray(v) ? v : []; }
+function paramsObj(){ return load('lv_params', {}) || {}; }
 
-function addGasto(){
-  const nome  = document.getElementById('g-nome').value.trim();
-  const valor = parseFloat(document.getElementById('g-valor').value)||0;
-  const data  = document.getElementById('g-data').value;
-  if(!nome){ showToast('Escreva o que você comprou.'); return; }
-  if(valor<=0){ showToast('Coloque quanto você pagou.'); return; }
-  if(!data){ showToast('Escolha a data da compra.'); return; }
-
-  syncGastos();
-  gastos.push({
-    id: 'g'+Date.now()+Math.random().toString(36).slice(2,7),
-    nome, valor, data,
-    qtd:   parseFloat(document.getElementById('g-qtd').value)||0,
-    un:    document.getElementById('g-un').value,
-    cat:   document.getElementById('g-cat').value,
-    local: document.getElementById('g-local').value.trim()
-  });
-  persistGastos();
-
-  document.getElementById('g-nome').value='';
-  document.getElementById('g-valor').value='';
-  document.getElementById('g-qtd').value='';
-  document.getElementById('g-local').value='';
-  // Mantém a data — normalmente ela lança várias compras do mesmo dia
-  renderGastos();
-  showToast('Compra anotada!');
+// ── Lápides: nota apagada não pode voltar pela sincronização ──
+function lerNotasApagadas(p){
+  const uniao = [...new Set([...lerLista(NOTAS_DEL).map(String), ...((p&&p.notasDel)||[]).map(String)])];
+  lsSave(NOTAS_DEL, uniao);
+  return new Set(uniao);
+}
+function marcarNotaApagada(id){
+  const p = paramsObj();
+  const set = lerNotasApagadas(p);
+  set.add(String(id));
+  const lista = [...set];
+  lsSave(NOTAS_DEL, lista);
+  p.notasDel = lista;
+  save('lv_params', p);
 }
 
-// O Supabase sincroniza em segundo plano e troca o array do cache;
-// por isso relemos o estado antes de mexer, senão gravamos dados velhos.
-// Os gastos ficam guardados DENTRO de lv_params, junto com os parâmetros de
-// precificação. Isso evita depender de uma tabela lv_gastos no Supabase, que
-// não existe. Mutamos o mesmo objeto que a variável `params` aponta, então
-// salvar parâmetros não apaga gastos e vice-versa.
-function gastosStore(){
-  const p = load('lv_params', {}) || {};
-  if(!Array.isArray(p.gastos)) p.gastos = [];
-  if(Array.isArray(p.gastosDel)){
-    const uniao = [...new Set([...lerApagados(), ...p.gastosDel.map(String)])];
-    lsSave(GASTOS_DEL, uniao);
-  }
-  return p;
-}
-// A cópia local fica numa chave PRÓPRIA, fora do SB_TABLES, para que a
-// sincronização do Supabase nunca a sobrescreva. lv_params serve só como
-// canal de sincronização: na leitura juntamos as duas listas.
-const GASTOS_LOCAL = 'lv_gastos';
-const GASTOS_DEL   = 'lv_gastos_del';
-
-function lerLocais(){
-  const v = lsLoad(GASTOS_LOCAL, []);
-  return Array.isArray(v) ? v : [];
-}
-function lerApagados(){
-  const v = lsLoad(GASTOS_DEL, []);
-  return Array.isArray(v) ? v.map(String) : [];
-}
-
-// União por id: nada some porque um aparelho não conhecia o registro.
-// Em conflito, vence quem foi editado por último.
-function juntarGastos(a, b){
-  const apagados = new Set(lerApagados());
+// ── Migração do formato antigo (uma compra por linha) ──
+// Compras antigas com o mesmo mercado e a mesma data viram UMA nota.
+// Ids derivados do conteúdo: rodar de novo, ou em outro aparelho, não duplica.
+function migrarGastosAntigos(p){
+  const apagadosAntigos = new Set([...lerLista('lv_gastos_del').map(String), ...((p.gastosDel)||[]).map(String)]);
   const mapa = new Map();
-  [...(a||[]), ...(b||[])].forEach(g => {
-    if(!g || !g.id || apagados.has(String(g.id))) return;
-    const k = String(g.id);
-    const anterior = mapa.get(k);
-    if(!anterior || (g.ts||0) >= (anterior.ts||0)) mapa.set(k, g);
+  [...lerLista('lv_gastos'), ...(Array.isArray(p.gastos)?p.gastos:[])].forEach(g=>{
+    if(g && g.id && !apagadosAntigos.has(String(g.id))) mapa.set(String(g.id), g);
   });
-  return [...mapa.values()].sort((x,y)=>(y.data||'').localeCompare(x.data||''));
+  const grupos = new Map();
+  mapa.forEach(g=>{
+    const local = String(g.local||'').trim();
+    const chave = local ? (g.data||'')+'|'+normalizar(local) : 'solo|'+g.id;
+    if(!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(g);
+  });
+  const out = [];
+  grupos.forEach((lista, chave)=>{
+    const primeira = lista[0];
+    out.push({
+      id: 'mig' + hashStr(chave),
+      ts: 2,                                  // perde para qualquer edição feita depois
+      mercado: String(primeira.local||'').trim(),
+      data: primeira.data || '',
+      total: lista.reduce((s,g)=>s+(parseFloat(g.valor)||0),0),
+      itens: lista.map(g=>({ id:'mi'+hashStr(String(g.id)), nome:g.nome||'', qtd:parseFloat(g.qtd)||0, un:g.un||'kg', valor:parseFloat(g.valor)||0 }))
+    });
+  });
+  return out;
 }
 
-function syncGastos(){
-  const p = gastosStore();
-  const locais  = lerLocais();
-  const remotos = Array.isArray(p.gastos) ? p.gastos : [];
-  gastos = juntarGastos(locais, remotos);
-
-  // Comparar o conteúdo, não o tamanho: uma correção no mesmo registro
-  // mantém o tamanho igual e precisa ser gravada do mesmo jeito.
-  const igual = (x,y) => JSON.stringify(x) === JSON.stringify(y);
-  if(!igual(gastos, locais)){ lsSave(GASTOS_LOCAL, gastos); }
-  if(!igual(gastos, remotos)){ p.gastos = gastos; save('lv_params', p); }
-  return gastos;
+function ordenarNotas(lista){
+  return lista.sort((a,b)=> (b.data||'').localeCompare(a.data||'') || String(b.id).localeCompare(String(a.id)));
+}
+function juntarNotas(listas, apagadas){
+  const mapa = new Map();
+  listas.forEach(l => (l||[]).forEach(n=>{
+    if(!n || !n.id || apagadas.has(String(n.id))) return;
+    const k = String(n.id), ant = mapa.get(k);
+    if(!ant || (n.ts||0) >= (ant.ts||0)) mapa.set(k, n);
+  }));
+  return ordenarNotas([...mapa.values()]);
 }
 
-function persistGastos(){
-  gastos.forEach(g => { if(!g.ts) g.ts = Date.now(); });
-  lsSave(GASTOS_LOCAL, gastos);          // cópia local, intocável pela nuvem
-  const p = gastosStore();
-  p.gastos = gastos;
-  save('lv_params', p);                  // canal de sincronização
+function syncNotas(){
+  const p        = paramsObj();
+  const apagadas = lerNotasApagadas(p);
+  const locais   = lerLista(NOTAS_LOCAL);
+  const remotas  = Array.isArray(p.notas) ? p.notas : [];
+  const migradas = migrarGastosAntigos(p);
+  notas = juntarNotas([migradas, locais, remotas], apagadas);
+  if(!igualJSON(notas, locais))  lsSave(NOTAS_LOCAL, notas);
+  if(!igualJSON(notas, remotas)){ p.notas = notas; save('lv_params', p); }
+  syncMercados(p);
+  return notas;
+}
+function persistNotas(){
+  ordenarNotas(notas);
+  lsSave(NOTAS_LOCAL, notas);
+  const p = paramsObj();
+  p.notas = notas;
+  save('lv_params', p);
 }
 
-// Exclusão precisa de lápide, senão o registro volta na próxima sincronização
-function marcarApagado(id){
-  const lista = lerApagados();
-  if(!lista.includes(String(id))){
-    lista.push(String(id));
-    lsSave(GASTOS_DEL, lista);
-    const p = gastosStore();
-    p.gastosDel = lista;
-    save('lv_params', p);
+// ── Mercados cadastrados: lista inteira, vence a versão mais nova ──
+function syncMercados(p){
+  p = p || paramsObj();
+  const local  = lsLoad(MERC_LOCAL, null);
+  const remoto = p.mercados || null;
+  let escolhido;
+  if(local && remoto) escolhido = (remoto.ts||0) > (local.ts||0) ? remoto : local;
+  else escolhido = local || remoto;
+  if(!escolhido){
+    // Primeira vez: começa com os mercados que já aparecem nas notas
+    const vistos = [...new Set(notas.map(n=>String(n.mercado||'').trim()).filter(Boolean))];
+    escolhido = { lista: vistos.sort((a,b)=>a.localeCompare(b,'pt-BR')), ts: 0 };
   }
+  mercados = Array.isArray(escolhido.lista) ? escolhido.lista : [];
+  if(!igualJSON(escolhido, local)) lsSave(MERC_LOCAL, escolhido);
+  if(!igualJSON(escolhido, remoto)){ p.mercados = escolhido; save('lv_params', p); }
 }
-const mesmoId = (a,b) => String(a) === String(b);
+function persistMercados(){
+  mercados.sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const obj = { lista: mercados, ts: Date.now() };
+  lsSave(MERC_LOCAL, obj);
+  const p = paramsObj();
+  p.mercados = obj;
+  save('lv_params', p);
+}
+function garantirMercado(nome){
+  nome = String(nome||'').trim();
+  if(!nome) return;
+  if(!mercados.some(m=>normalizar(m)===normalizar(nome))){ mercados.push(nome); persistMercados(); }
+}
+function adicionarMercado(){
+  const inp = document.getElementById('merc-novo');
+  const nome = (inp && inp.value || '').trim();
+  if(!nome){ showToast('Escreva o nome do mercado.'); return; }
+  if(mercados.some(m=>normalizar(m)===normalizar(nome))){ showToast('Esse mercado já está na lista.'); return; }
+  mercados.push(nome); persistMercados();
+  renderGastos(); showToast('Mercado cadastrado!');
+}
+function removerMercado(nome, confirmado){
+  if(!confirmado){ gConfirmando = 'merc:'+nome; renderGastos(); return; }
+  gConfirmando = null;
+  mercados = mercados.filter(m=>m!==nome); persistMercados();
+  renderGastos(); showToast('Mercado removido da lista.');
+}
+function toggleMercadosBox(){
+  const box = document.getElementById('merc-box'), seta = document.getElementById('merc-box-seta');
+  if(!box) return;
+  const abrir = box.style.display === 'none';
+  box.style.display = abrir ? 'block' : 'none';
+  if(seta) seta.textContent = abrir ? '▾' : '▸';
+}
+function toggleNovoMercado(){
+  const sel = document.getElementById('n-mercado'), inp = document.getElementById('n-mercado-novo');
+  if(!sel || !inp) return;
+  const outro = sel.value === '__novo__';
+  inp.style.display = outro ? 'block' : 'none';
+  if(outro) inp.focus();
+}
 
-function removeGasto(id){
-  syncGastos();
-  const g = gastos.find(x=>mesmoId(x.id,id));
-  if(!g){ showToast('Não encontrei essa compra. Atualize a página.'); return; }
-  if(!confirm('Apagar "'+(g.nome||'esta compra')+'"?')) return;
-  gastos = gastos.filter(x=>!mesmoId(x.id,id));
-  marcarApagado(id);
-  persistGastos();
+// ── Notas ──
+function criarNota(){
+  syncNotas();
+  const sel   = document.getElementById('n-mercado');
+  let mercado = sel ? sel.value : '';
+  if(mercado === '__novo__') mercado = (document.getElementById('n-mercado-novo').value||'').trim();
+  const data  = document.getElementById('n-data').value;
+  const total = parseFloat(document.getElementById('n-total').value)||0;
+  if(!mercado){ showToast('Escolha ou escreva o mercado.'); return; }
+  if(!data){ showToast('Escolha a data.'); return; }
+  if(total<=0){ showToast('Coloque o total que você pagou.'); return; }
+
+  garantirMercado(mercado);
+  const nota = { id: novoId('n'), ts: Date.now(), mercado, data, total, itens: [] };
+  notas.push(nota);
+  persistNotas();
+  notasAbertas.add(nota.id);
+
+  document.getElementById('n-total').value = '';
+  document.getElementById('n-mercado-novo').value = '';
+  gastosMesFiltro = gastoMesKey(data) || gastosMesFiltro;
+  fecharNovaNota();
   renderGastos();
-  showToast('Compra apagada.');
+  if(sel) sel.value = mercado;                 // mantém o mercado escolhido para a próxima
+  toggleNovoMercado();
+  setTimeout(()=>{ const f = document.getElementById('ni-nome-'+nota.id); if(f){ if(f.scrollIntoView) f.scrollIntoView({behavior:'smooth',block:'center'}); f.focus(); } }, 50);
+  showToast('Nota criada! Agora anote o que comprou.');
 }
-
-function updateGasto(id, campo, val){
-  syncGastos();
-  const g = gastos.find(x=>mesmoId(x.id,id));
-  if(!g) return;
-  g[campo] = (campo==='valor'||campo==='qtd') ? (parseFloat(val)||0) : val;
-  g.ts = Date.now();
-  persistGastos();
+function acharNota(id){ return notas.find(n=>mesmoId(n.id,id)); }
+function toggleNota(id){
+  if(notasAbertas.has(id)) notasAbertas.delete(id); else notasAbertas.add(id);
+  if(gConfirmando && gConfirmando.indexOf(id)>=0) gConfirmando = null;
+  if(notaEmEdicao===id) notaEmEdicao=null;
+  if(itemEmEdicao && itemEmEdicao.startsWith(id+'|')) itemEmEdicao=null;
   renderGastos();
 }
+function updateNota(id, campo, val){
+  syncNotas();
+  const n = acharNota(id); if(!n) return;
+  if(campo==='total') n.total = parseFloat(val)||0;
+  else n[campo] = val;
+  if(campo==='mercado') garantirMercado(val);
+  n.ts = Date.now();
+  persistNotas(); renderGastos();
+}
+function removerNota(id, confirmado){
+  syncNotas();
+  const n = acharNota(id);
+  if(!n){ showToast('Não encontrei essa nota. Atualize a página.'); return; }
+  if(!confirmado){ gConfirmando = 'nota:'+id; notasAbertas.add(id); renderGastos(); return; }
+  gConfirmando = null;
+  notas = notas.filter(x=>!mesmoId(x.id,id));
+  marcarNotaApagada(id);
+  notasAbertas.delete(id);
+  if(notaEmEdicao===id) notaEmEdicao=null;
+  persistNotas(); renderGastos();
+  showToast('Nota apagada.');
+}
 
+// ── Itens dentro da nota ──
+function adicionarItem(notaId){
+  syncNotas();
+  const n = acharNota(notaId); if(!n) return;
+  const nomeEl = document.getElementById('ni-nome-'+notaId);
+  const nome = (nomeEl && nomeEl.value || '').trim();
+  if(!nome){ showToast('Escreva o que comprou.'); if(nomeEl) nomeEl.focus(); return; }
+  const qtd = parseFloat((document.getElementById('ni-qtd-'+notaId)||{}).value)||0;
+  const un  = (document.getElementById('ni-un-'+notaId)||{}).value || 'kg';
+  const valor = parseFloat((document.getElementById('ni-val-'+notaId)||{}).value)||0;
+  n.itens = n.itens || [];
+  n.itens.push({ id: novoId('i'), nome: nomeCanonico(nome), qtd, un, valor });
+  n.ts = Date.now();
+  persistNotas(); renderGastos();
+  // pronto para o próximo item, sem precisar clicar
+  setTimeout(()=>{ const f = document.getElementById('ni-nome-'+notaId); if(f) f.focus(); }, 30);
+}
+function itemEnter(ev, notaId){ if(ev.key==='Enter'){ ev.preventDefault(); adicionarItem(notaId); } }
+function updateItem(notaId, itemId, campo, val){
+  syncNotas();
+  const n = acharNota(notaId); if(!n) return;
+  const it = (n.itens||[]).find(i=>mesmoId(i.id,itemId)); if(!it) return;
+  it[campo] = (campo==='qtd'||campo==='valor') ? (parseFloat(val)||0) : val;
+  n.ts = Date.now();
+  persistNotas(); renderGastos();
+}
+function removerItem(notaId, itemId, confirmado){
+  if(!confirmado){ gConfirmando = 'item:'+notaId+'|'+itemId; renderGastos(); return; }
+  gConfirmando = null;
+  syncNotas();
+  const n = acharNota(notaId); if(!n) return;
+  n.itens = (n.itens||[]).filter(i=>!mesmoId(i.id,itemId));
+  itemEmEdicao = null;
+  n.ts = Date.now();
+  persistNotas(); renderGastos();
+  showToast('Item apagado.');
+}
+
+// ── Tela ──
+function renderMercadosBox(){
+  const box = document.getElementById('merc-box'); if(!box) return;
+  const chips = mercados.length
+    ? mercados.map(m=>{
+        const arg = `decodeURIComponent('${encodeURIComponent(m).replace(/'/g,'%27')}')`;
+        if(gConfirmando === 'merc:'+m)
+          return barraConfirma(`Tirar <strong>${escHtml(m)}</strong> da lista? As notas antigas desse mercado continuam.`, `removerMercado(${arg},true)`, 'Sim, tirar');
+        return `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--cream-dark);border-radius:14px;padding:4px 6px 4px 12px;margin:0 6px 6px 0;font-size:12px;color:var(--text-mid);">${escHtml(m)}<button onclick="removerMercado(${arg})" style="border:none;background:transparent;color:var(--text-light);cursor:pointer;font-size:12px;padding:0 4px;">✕</button></span>`;
+      }).join('')
+    : '<div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">Nenhum mercado cadastrado ainda.</div>';
+  box.innerHTML = `<div>${chips}</div>
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+      <input type="text" id="merc-novo" placeholder="Ex: Atacadão" onkeydown="if(event.key==='Enter'){adicionarMercado();}" style="flex:1;min-width:150px;border:1px solid var(--cream-border);border-radius:6px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--cream);">
+      <button class="btn btn-brown" style="padding:7px 14px;font-size:12px;" onclick="adicionarMercado()">Cadastrar</button>
+    </div>`;
+}
+
+function renderSelectMercado(){
+  const sel = document.getElementById('n-mercado'); if(!sel) return;
+  const atual = sel.value;
+  sel.innerHTML = (mercados.length ? '' : '<option value="" disabled selected>Cadastre ou escreva um mercado</option>')
+    + mercados.map(m=>`<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('')
+    + '<option value="__novo__">➕ Outro mercado...</option>';
+  if(atual && [...sel.options].some(o=>o.value===atual)) sel.value = atual;
+  else if(!mercados.length){ sel.value='__novo__'; }
+  toggleNovoMercado();
+}
+
+// ── Mês exibido ──
+function mesAtualKey(){ return hojeISO().slice(0,7); }
+function mesExibido(){ if(!gastosMesFiltro) gastosMesFiltro = mesAtualKey(); return gastosMesFiltro; }
+function mudarMes(delta){
+  const [a,m] = mesExibido().split('-').map(Number);
+  const d = new Date(a, m-1+delta, 1);
+  gastosMesFiltro = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  ingAbertos.clear(); mercAbertos.clear();
+  renderGastos();
+}
+function irParaMes(k){ if(k && k.length>=7){ gastosMesFiltro = k.slice(0,7); renderGastos(); } }
+function abrirNovaNota(){
+  const box = document.getElementById('nova-nota-box'); if(!box) return;
+  box.style.display = 'block';
+  const d = document.getElementById('n-data');
+  if(d && !d.value) d.value = hojeISO();
+  const t = document.getElementById('n-total'); if(t) setTimeout(()=>t.focus(), 30);
+}
+function fecharNovaNota(){ const box = document.getElementById('nova-nota-box'); if(box) box.style.display = 'none'; }
+function abrirNotaDe(id){
+  const n = acharNota(id); if(!n) return;
+  gastosMesFiltro = gastoMesKey(n.data) || mesExibido();
+  notasAbertas.add(n.id);
+  renderGastos();
+  setTimeout(()=>{ const el = document.getElementById('nota-'+n.id); if(el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth',block:'start'}); }, 50);
+}
+
+// ── Catálogo de itens: sugestões de nome e unidade ──
+// Nomes já comprados (grafia mais usada) + ingredientes da Ficha Técnica.
+function catalogoItens(){
+  const cat = new Map();
+  const grafias = new Map();
+  notas.forEach(n => (n.itens||[]).forEach(it=>{
+    const k = normalizar(it.nome); if(!k) return;
+    const nome = String(it.nome).trim();
+    if(!grafias.has(k)) grafias.set(k, {});
+    grafias.get(k)[nome] = (grafias.get(k)[nome]||0) + 1;
+    const atual = cat.get(k);
+    if(!atual || (n.data||'') >= (atual.data||'')) cat.set(k, { nome, un: it.un||'kg', data: n.data||'' });
+  }));
+  grafias.forEach((g,k)=>{
+    const melhor = Object.entries(g).sort((a,b)=> b[1]-a[1] || (/^[A-ZÀ-Ý]/.test(b[0])?1:0)-(/^[A-ZÀ-Ý]/.test(a[0])?1:0))[0][0];
+    cat.get(k).nome = melhor;
+  });
+  (Array.isArray(ingredients)?ingredients:[]).forEach(ing=>{
+    const k = normalizar(ing && ing.nome); if(!k || cat.has(k)) return;
+    const un = GASTO_UNS.includes(ing.un_compra) ? ing.un_compra : 'kg';
+    cat.set(k, { nome: String(ing.nome).trim(), un, data: '' });
+  });
+  return cat;
+}
+function renderSugestoes(){
+  const dl = document.getElementById('dl-itens'); if(!dl) return;
+  const nomes = [...catalogoItens().values()].map(x=>x.nome).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  dl.innerHTML = nomes.map(n=>`<option value="${escHtml(n)}"></option>`).join('');
+}
+// Ao escrever um item conhecido, já coloca a unidade da última compra
+function sugerirUnidade(campoNome, campoUn){
+  const nomeEl = document.getElementById(campoNome), unEl = document.getElementById(campoUn);
+  if(!nomeEl || !unEl) return;
+  const c = catalogoItens().get(normalizar(nomeEl.value));
+  if(c && c.un) unEl.value = c.un;
+}
+// Grava sempre com a mesma grafia de antes, para o resumo não separar
+function nomeCanonico(nome){
+  const c = catalogoItens().get(normalizar(nome));
+  return c ? c.nome : String(nome||'').trim();
+}
+
+// ── Nota ──
+function cancelarConfirmacao(){ gConfirmando = null; renderGastos(); }
+function barraConfirma(texto, onSim, rotuloSim){
+  return `<div style="background:#FDECEA;border:1px solid var(--red);border-radius:8px;padding:10px 12px;margin:6px 0;">
+    <div style="font-size:12.5px;color:var(--text);margin-bottom:8px;line-height:1.5;">${texto}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="event.stopPropagation();${onSim}" class="btn btn-red" style="padding:8px 14px;font-size:12px;">${rotuloSim||'Sim, apagar'}</button>
+      <button onclick="event.stopPropagation();cancelarConfirmacao()" class="btn" style="background:#fff;color:var(--text-mid);padding:8px 14px;font-size:12px;">Cancelar</button>
+    </div></div>`;
+}
+function iniciarEdicaoNota(id){ notaEmEdicao = id; gConfirmando = null; renderGastos(); }
+function cancelarEdicaoNota(){ notaEmEdicao = null; renderGastos(); }
+function salvarEdicaoNota(id){
+  syncNotas();
+  const n = acharNota(id); if(!n) return;
+  let merc    = (document.getElementById('en-merc-'+id)||{}).value;
+  if(merc === '__novo__'){
+    merc = ((document.getElementById('en-merc-novo-'+id)||{}).value||'').trim();
+    if(!merc){ showToast('Escreva o nome do mercado.'); return; }
+  }
+  const data  = (document.getElementById('en-data-'+id)||{}).value;
+  const total = parseFloat((document.getElementById('en-total-'+id)||{}).value);
+  if(!data){ showToast('Escolha a data.'); return; }
+  if(!(total>0)){ showToast('Coloque o total que você pagou.'); return; }
+  if(merc){ n.mercado = merc; garantirMercado(merc); }
+  n.data = data; n.total = total; n.ts = Date.now();
+  notaEmEdicao = null;
+  persistNotas();
+  gastosMesFiltro = gastoMesKey(n.data) || gastosMesFiltro;
+  renderGastos(); showToast('Nota salva.');
+}
+function iniciarEdicaoItem(notaId, itemId){ itemEmEdicao = notaId+'|'+itemId; gConfirmando = null; renderGastos();
+  setTimeout(()=>{ const f=document.getElementById('ie-nome'); if(f) f.focus(); },30); }
+function cancelarEdicaoItem(){ itemEmEdicao = null; renderGastos(); }
+function salvarEdicaoItem(notaId, itemId){
+  syncNotas();
+  const n = acharNota(notaId); if(!n) return;
+  const it = (n.itens||[]).find(i=>mesmoId(i.id,itemId)); if(!it) return;
+  const nome = (document.getElementById('ie-nome').value||'').trim();
+  if(!nome){ showToast('Escreva o nome do item.'); return; }
+  it.nome  = nomeCanonico(nome);
+  it.qtd   = parseFloat(document.getElementById('ie-qtd').value)||0;
+  it.un    = document.getElementById('ie-un').value||'kg';
+  it.valor = parseFloat(document.getElementById('ie-val').value)||0;
+  n.ts = Date.now();
+  itemEmEdicao = null;
+  persistNotas(); renderGastos();
+}
+function itemEditEnter(ev, notaId, itemId){ if(ev.key==='Enter'){ ev.preventDefault(); salvarEdicaoItem(notaId, itemId); } }
+
+function textoQtd(it){ return (it.qtd||0) > 0 ? fmtQtd(it.qtd)+' '+(it.un||'') : ''; }
+
+function renderNota(n){
+  const aberta = notasAbertas.has(n.id);
+  const itens  = n.itens || [];
+  const inp    = "border:1px solid var(--cream-border);border-radius:5px;padding:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:#fff;";
+  const cab = `<div onclick="toggleNota('${n.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;">
+      <div style="min-width:0;">
+        <div style="font-size:14px;color:var(--text);font-weight:500;"><span style="color:var(--text-light);font-size:11px;margin-right:6px;">${aberta?'▾':'▸'}</span>${escHtml(n.mercado||'Sem mercado')}</div>
+        <div style="font-size:11.5px;color:var(--text-light);margin-top:2px;margin-left:17px;">${fmtDataBR(n.data)} · ${itens.length ? itens.length+(itens.length===1?' item':' itens') : 'sem itens anotados'}</div>
+      </div>
+      <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--brown);white-space:nowrap;">${brl(n.total)}</div>
+    </div>`;
+  if(!aberta) return `<div id="nota-${n.id}" style="border:1px solid var(--cream-border);border-radius:10px;margin-bottom:8px;background:#fff;">${cab}</div>`;
+
+  // Dados da nota: texto; campos só ao tocar em "Editar nota"
+  let dadosNota;
+  if(notaEmEdicao === n.id){
+    const nomesMerc = mercados.includes(n.mercado) || !n.mercado ? mercados : [n.mercado, ...mercados];
+    dadosNota = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;background:var(--cream-dark);border-radius:8px;padding:10px;margin-bottom:12px;">
+      <div style="flex:2;min-width:150px;"><div style="font-size:10.5px;color:var(--text-light);margin-bottom:2px;">Mercado</div>
+        <select id="en-merc-${n.id}" onchange="document.getElementById('en-merc-novo-${n.id}').style.display=this.value==='__novo__'?'block':'none'" style="${inp}width:100%;cursor:pointer;">${opcoes(nomesMerc, n.mercado)}<option value="__novo__">➕ Outro mercado...</option></select>
+        <input type="text" id="en-merc-novo-${n.id}" placeholder="Nome do mercado" style="${inp}width:100%;margin-top:6px;display:none;"></div>
+      <div style="flex:1;min-width:130px;"><div style="font-size:10.5px;color:var(--text-light);margin-bottom:2px;">Data</div>
+        <input type="date" id="en-data-${n.id}" value="${n.data||''}" style="${inp}width:100%;"></div>
+      <div style="flex:1;min-width:110px;"><div style="font-size:10.5px;color:var(--text-light);margin-bottom:2px;">Total pago (R$)</div>
+        <input type="number" id="en-total-${n.id}" step="0.01" min="0" value="${n.total||0}" style="${inp}width:100%;text-align:right;"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
+        <button onclick="salvarEdicaoNota('${n.id}')" class="btn btn-brown" style="padding:8px 14px;font-size:12px;">Salvar</button>
+        <button onclick="cancelarEdicaoNota()" class="btn" style="background:#fff;color:var(--text-mid);padding:8px 14px;font-size:12px;">Cancelar</button>
+        <button onclick="removerNota('${n.id}')" class="btn btn-red" style="padding:8px 14px;font-size:12px;margin-left:auto;">🗑 Apagar nota</button>
+      </div></div>`;
+  } else {
+    dadosNota = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <button onclick="iniciarEdicaoNota('${n.id}')" class="btn" style="background:var(--cream-dark);color:var(--brown);padding:8px 14px;font-size:12px;">✏️ Editar mercado, data ou total</button>
+        <button onclick="removerNota('${n.id}')" class="btn" style="background:#fff;border:1px solid var(--red);color:var(--red);padding:8px 14px;font-size:12px;">🗑 Apagar nota</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">O que comprou</div>`;
+  }
+  if(gConfirmando === 'nota:'+n.id){
+    const q = itens.length;
+    dadosNota = barraConfirma(`Apagar a nota inteira de <strong>${escHtml(n.mercado||'mercado')}</strong> do dia ${fmtDataBR(n.data)}${q?`, com ${q} ${q===1?'item':'itens'}`:''}? Isso não tem volta.`, `removerNota('${n.id}',true)`, 'Sim, apagar a nota') + dadosNota;
+  }
+
+  const linhasItens = itens.length ? itens.map(it=>{
+    if(itemEmEdicao === n.id+'|'+it.id){
+      return `<div style="background:var(--cream-dark);border-radius:8px;padding:8px;margin:4px 0;">
+        <input type="text" id="ie-nome" list="dl-itens" value="${escHtml(it.nome)}" oninput="sugerirUnidade('ie-nome','ie-un')" onkeydown="itemEditEnter(event,'${n.id}','${it.id}')" style="${inp}width:100%;margin-bottom:6px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <input type="number" id="ie-qtd" step="0.01" min="0" value="${it.qtd||''}" placeholder="qtd" onkeydown="itemEditEnter(event,'${n.id}','${it.id}')" style="${inp}width:76px;text-align:right;">
+          <select id="ie-un" style="${inp}width:70px;cursor:pointer;">${opcoes(GASTO_UNS, it.un||'kg')}</select>
+          <input type="number" id="ie-val" step="0.01" min="0" value="${it.valor||''}" placeholder="R$" onkeydown="itemEditEnter(event,'${n.id}','${it.id}')" style="${inp}width:96px;text-align:right;">
+          <button onclick="salvarEdicaoItem('${n.id}','${it.id}')" class="btn btn-brown" style="padding:8px 12px;font-size:12px;">OK</button>
+          <button onclick="cancelarEdicaoItem()" class="btn" style="background:#fff;color:var(--text-mid);padding:8px 12px;font-size:12px;">Cancelar</button>
+          <button onclick="removerItem('${n.id}','${it.id}')" style="border:1px solid var(--red);background:#fff;color:var(--red);border-radius:6px;font-size:12px;cursor:pointer;padding:7px 10px;margin-left:auto;">🗑 Apagar item</button>
+        </div></div>`;
+    }
+    if(gConfirmando === 'item:'+n.id+'|'+it.id)
+      return barraConfirma(`Apagar <strong>${escHtml(it.nome)}</strong> desta nota?`, `removerItem('${n.id}','${it.id}',true)`, 'Sim, apagar item');
+    const q = textoQtd(it);
+    const btnIco = "border:1px solid var(--cream-border);background:#fff;border-radius:6px;width:34px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0;";
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px dashed var(--cream-border);">
+      <div onclick="iniciarEdicaoItem('${n.id}','${it.id}')" style="flex:1;min-width:0;cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+        <div style="min-width:0;font-size:13px;color:var(--text);">${escHtml(it.nome)}${q?`<span style="color:var(--text-light);font-size:12px;"> · ${q}</span>`:''}</div>
+        <div style="font-size:13px;color:${(it.valor||0)>0?'var(--text-mid)':'var(--text-light)'};white-space:nowrap;">${(it.valor||0)>0?brl(it.valor):'sem valor'}</div>
+      </div>
+      <button onclick="iniciarEdicaoItem('${n.id}','${it.id}')" title="Editar item" style="${btnIco}">✏️</button>
+      <button onclick="removerItem('${n.id}','${it.id}')" title="Apagar item" style="${btnIco}color:var(--red);">🗑</button>
+    </div>`;
+  }).join('')
+  : '<div style="font-size:12px;color:var(--text-light);padding:4px 0 8px;">Nenhum item anotado ainda.</div>';
+
+  return `<div id="nota-${n.id}" style="border:1px solid var(--brown);border-radius:10px;margin-bottom:8px;background:#fff;">
+    ${cab}
+    <div style="padding:0 14px 14px;">
+      ${dadosNota}
+      ${linhasItens}
+      ${somaItensHtml(n)}
+      <div style="background:var(--cream);border-radius:8px;padding:10px;margin-top:12px;">
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:6px;">Adicionar item</div>
+        <input type="text" id="ni-nome-${n.id}" list="dl-itens" placeholder="Ex: Mussarela" oninput="sugerirUnidade('ni-nome-${n.id}','ni-un-${n.id}')" onkeydown="itemEnter(event,'${n.id}')" style="${inp}width:100%;margin-bottom:6px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <input type="number" id="ni-qtd-${n.id}" step="0.01" min="0" placeholder="qtd" onkeydown="itemEnter(event,'${n.id}')" style="${inp}width:76px;text-align:right;">
+          <select id="ni-un-${n.id}" style="${inp}width:70px;cursor:pointer;">${opcoes(GASTO_UNS,'kg')}</select>
+          <input type="number" id="ni-val-${n.id}" step="0.01" min="0" placeholder="R$" onkeydown="itemEnter(event,'${n.id}')" style="${inp}width:96px;text-align:right;">
+          <button onclick="adicionarItem('${n.id}')" class="btn btn-brown" style="padding:8px 14px;font-size:12px;">+ Adicionar</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--text-light);margin-top:6px;">Aperte Enter para adicionar e já começar o próximo. Para corrigir um item, toque em ✏️; para apagar, em 🗑.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Resumos: por mercado e por ingrediente ──
+// g e ml viram kg e L para somar certo (500 g + 2 kg = 2,5 kg)
+function qtdBase(qtd, un){
+  qtd = parseFloat(qtd)||0;
+  if(un==='g')  return [qtd/1000, 'kg'];
+  if(un==='ml') return [qtd/1000, 'L'];
+  return [qtd, un||'un'];
+}
+function fmtQtd(v){ return (+v).toLocaleString('pt-BR',{maximumFractionDigits:3}); }
+function textoQtds(obj){ return Object.entries(obj).filter(([,q])=>q>0).map(([u,q])=>fmtQtd(q)+' '+u).join(' + '); }
+
+function somaItensHtml(n){
+  const comValor = (n.itens||[]).filter(i=>(i.valor||0)>0);
+  if(!comValor.length) return '';
+  const soma = comValor.reduce((s,i)=>s+(i.valor||0),0);
+  const dif = (n.total||0) - soma;
+  if(Math.abs(dif) < 0.01)
+    return `<div style="font-size:11.5px;color:var(--green);margin-top:8px;">✓ Os itens somam exatamente o total da nota.</div>`;
+  const txt = dif > 0
+    ? `Itens anotados somam ${brl(soma)} — faltam ${brl(dif)} para chegar no total da nota.`
+    : `Itens anotados somam ${brl(soma)} — ${brl(-dif)} a mais que o total da nota. Vale conferir.`;
+  return `<div style="font-size:11.5px;color:${dif>0?'var(--text-light)':'var(--amber)'};margin-top:8px;">${txt}</div>`;
+}
+
+// Cada ingrediente guarda também as compras, uma por nota, da mais antiga para a mais nova
+function resumoIngredientes(lista){
+  const grupos = new Map();
+  lista.forEach(n => (n.itens||[]).forEach(it => {
+    const chave = normalizar(it.nome);
+    if(!chave) return;
+    if(!grupos.has(chave)) grupos.set(chave, { chave, nome:'', grafias:{}, valor:0, qtds:{}, semValor:0, porNota:new Map() });
+    const g = grupos.get(chave);
+    const grafia = String(it.nome).trim();
+    g.grafias[grafia] = (g.grafias[grafia]||0) + 1;
+    if((it.valor||0) > 0) g.valor += +it.valor; else g.semValor++;
+    const [q,u] = qtdBase(it.qtd, it.un);
+    if(q > 0) g.qtds[u] = (g.qtds[u]||0) + q;
+    if(!g.porNota.has(n.id)) g.porNota.set(n.id, { notaId:n.id, mercado:n.mercado||'Sem mercado', data:n.data||'', valor:0, qtds:{}, semValor:false });
+    const c = g.porNota.get(n.id);
+    if((it.valor||0) > 0) c.valor += +it.valor; else c.semValor = true;
+    if(q > 0) c.qtds[u] = (c.qtds[u]||0) + q;
+  }));
+  const out = [...grupos.values()];
+  out.forEach(g=>{
+    g.nome = Object.entries(g.grafias).sort((a,b)=> b[1]-a[1] || (/^[A-ZÀ-Ý]/.test(b[0])?1:0)-(/^[A-ZÀ-Ý]/.test(a[0])?1:0))[0][0];
+    if(!/^[A-ZÀ-Ý]/.test(g.nome)) g.nome = g.nome.charAt(0).toUpperCase() + g.nome.slice(1);
+    g.compras = [...g.porNota.values()].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  });
+  return out.sort((a,b)=> b.valor - a.valor || b.compras.length - a.compras.length || a.nome.localeCompare(b.nome,'pt-BR'));
+}
+
+function resumoMercados(lista){
+  const m = new Map();
+  lista.forEach(n=>{
+    const k = String(n.mercado||'Sem mercado').trim() || 'Sem mercado';
+    const chave = normalizar(k);
+    const cadastrado = mercados.find(x=>normalizar(x)===chave);
+    if(!m.has(chave)) m.set(chave, { chave, nome: cadastrado || k, total:0, notas:[] });
+    const g = m.get(chave); g.total += (n.total||0); g.notas.push(n);
+  });
+  const out = [...m.values()];
+  out.forEach(g=> g.notas.sort((a,b)=>(a.data||'').localeCompare(b.data||'')));
+  return out.sort((a,b)=>b.total-a.total);
+}
+function toggleIng(i){ const g=_resumoIng[i]; if(!g) return; if(ingAbertos.has(g.chave)) ingAbertos.delete(g.chave); else ingAbertos.add(g.chave); renderGastos(); }
+function toggleMerc(i){ const g=_resumoMerc[i]; if(!g) return; if(mercAbertos.has(g.chave)) mercAbertos.delete(g.chave); else mercAbertos.add(g.chave); renderGastos(); }
+
+function renderResumo(lista){
+  const el = document.getElementById('gastos-resumo');
+  if(!el) return;
+  if(!lista.length){ el.innerHTML=''; _resumoIng=[]; _resumoMerc=[]; return; }
+  const periodo = gastoMesLabel(mesExibido());
+  const linhaDet = (onclick, esq, dir) => `<div onclick="${onclick}" style="display:flex;justify-content:space-between;gap:10px;padding:7px 10px;font-size:12px;color:var(--text-mid);border-top:1px solid #fff;cursor:pointer;">
+      <span>${esq}</span><span style="white-space:nowrap;">${dir}</span></div>`;
+
+  _resumoMerc = resumoMercados(lista);
+  const maxM = Math.max(..._resumoMerc.map(x=>x.total), 1);
+  const htmlM = _resumoMerc.map((x,i)=>{
+    const aberto = mercAbertos.has(x.chave);
+    const det = aberto ? `<div style="background:var(--cream-dark);border-radius:8px;margin-top:6px;overflow:hidden;">
+        ${x.notas.map(n=>linhaDet(`abrirNotaDe('${n.id}')`,
+          `${fmtDataBR(n.data)} · ${(n.itens||[]).length ? (n.itens.length+((n.itens.length===1)?' item':' itens')) : 'sem itens'}`,
+          `${brl(n.total)} ›`)).join('')}</div>` : '';
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--cream-border);">
+      <div onclick="toggleMerc(${i})" style="cursor:pointer;">
+        <div style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px;">
+          <span style="color:var(--text);"><span style="color:var(--text-light);font-size:10px;margin-right:5px;">${aberto?'▾':'▸'}</span>${escHtml(x.nome)}</span>
+          <span style="color:var(--brown);font-weight:500;white-space:nowrap;">${brl(x.total)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:5px;padding-left:15px;">
+          <div style="flex:1;height:5px;background:var(--cream-dark);border-radius:3px;overflow:hidden;">
+            <div style="width:${(x.total/maxM*100).toFixed(1)}%;height:100%;background:var(--brown);"></div></div>
+          <span style="font-size:10.5px;color:var(--text-light);white-space:nowrap;">${x.notas.length} ${x.notas.length===1?'nota':'notas'}</span>
+        </div>
+      </div>${det}</div>`;
+  }).join('');
+
+  _resumoIng = resumoIngredientes(lista);
+  const htmlI = _resumoIng.length ? _resumoIng.map((x,i)=>{
+    const aberto = ingAbertos.has(x.chave);
+    const qtd = textoQtds(x.qtds);
+    const n = x.compras.length;
+    const sub = [qtd ? 'Total: '+qtd : '', n+(n===1?' compra':' compras')].filter(Boolean).join(' · ');
+    const aviso = x.semValor ? `<span style="color:var(--amber);"> · ${x.semValor} sem valor anotado</span>` : '';
+    const det = aberto ? `<div style="background:var(--cream-dark);border-radius:8px;margin-top:6px;overflow:hidden;">
+        ${x.compras.map(c=>{
+          const q = textoQtds(c.qtds);
+          return linhaDet(`abrirNotaDe('${c.notaId}')`,
+            `${escHtml(c.mercado)} · ${fmtDataBR(c.data)}${q?' · <strong style="font-weight:500;">'+q+'</strong>':''}`,
+            `${c.valor>0?brl(c.valor):'sem valor'} ›`);
+        }).join('')}</div>` : '';
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--cream-border);">
+      <div onclick="toggleIng(${i})" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;">
+        <div style="min-width:0;">
+          <div style="font-size:13.5px;color:var(--text);"><span style="color:var(--text-light);font-size:10px;margin-right:5px;">${aberto?'▾':'▸'}</span>${escHtml(x.nome)}</div>
+          <div style="font-size:11.5px;color:var(--text-light);margin-top:2px;padding-left:15px;">${sub}${aviso}</div>
+        </div>
+        <div style="font-size:13.5px;color:${x.valor?'var(--brown)':'var(--text-light)'};font-weight:500;white-space:nowrap;">${x.valor?brl(x.valor):'—'}</div>
+      </div>${det}</div>`;
+  }).join('')
+  : `<div style="font-size:12px;color:var(--text-light);line-height:1.6;padding:6px 0;">Nenhum item anotado em ${periodo}. Abra uma nota e anote o que comprou, com a quantidade e o valor, para ver aqui quanto gastou de cada ingrediente.</div>`;
+
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;margin-bottom:16px;">
+    <div class="card" style="border-top:3px solid var(--green);">
+      <div class="card-title">🧀 Quanto gastou em cada ingrediente</div>
+      <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">${periodo} · toque num ingrediente para ver cada compra</div>
+      ${htmlI}
+    </div>
+    <div class="card" style="border-top:3px solid var(--brown);">
+      <div class="card-title">🏪 Quanto gastou em cada mercado</div>
+      <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">${periodo} · toque num mercado para ver as notas</div>
+      ${htmlM}
+    </div>
+  </div>`;
+}
 
 function renderGastos(){
-  const tbody = document.getElementById('gastos-tbody');
-  if(!tbody) return;
-  syncGastos();
-  // Já deixa a data de hoje preenchida
-  const dIn = document.getElementById('g-data');
-  if(dIn && !dIn.value){
-    const n = new Date();
-    dIn.value = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
-  }
-  const R = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const lista = document.getElementById('notas-lista');
+  if(!lista) return;
+  syncNotas();
 
-  // Filtro de mês
-  const meses = [...new Set(gastos.map(g=>gastoMesKey(g.data)).filter(Boolean))].sort().reverse();
-  const sel = document.getElementById('g-filtro-mes');
-  if(sel){
-    if(gastosMesFiltro!=='todos' && !meses.includes(gastosMesFiltro)) gastosMesFiltro='todos';
-    sel.innerHTML = '<option value="todos">Todos os meses</option>' +
-      meses.map(m=>`<option value="${m}" ${gastosMesFiltro===m?'selected':''}>${gastoMesLabel(m)}</option>`).join('');
-    sel.value = gastosMesFiltro;
-  }
+  const dIn = document.getElementById('n-data');
+  if(dIn && !dIn.value) dIn.value = hojeISO();
+  renderSelectMercado();
+  renderMercadosBox();
+  renderSugestoes();
 
-  const lista = gastos
-    .filter(g => gastosMesFiltro==='todos' || gastoMesKey(g.data)===gastosMesFiltro)
-    .sort((a,b)=> (b.data||'').localeCompare(a.data||'') || b.id-a.id);
+  const mes = mesExibido();
+  const lbl = document.getElementById('g-mes-label');
+  if(lbl) lbl.textContent = gastoMesLabel(mes);
+  const doMes = notas.filter(n => gastoMesKey(n.data) === mes);
+  const total = doMes.reduce((s,n)=>s+(n.total||0),0);
+  const linha = document.getElementById('g-mes-total');
+  if(linha) linha.innerHTML = doMes.length
+    ? `Você gastou <strong style="color:var(--brown);font-size:15px;">${brl(total)}</strong> em ${doMes.length} ${doMes.length===1?'nota':'notas'} neste mês.`
+    : `Nenhuma nota em ${gastoMesLabel(mes)}.`;
+  const tit = document.getElementById('notas-titulo');
+  if(tit) tit.textContent = '📋 Notas de ' + gastoMesLabel(mes);
 
-  // KPIs
-  const kpis = document.getElementById('gastos-kpis');
-  if(kpis){
-    if(!gastos.length){ kpis.innerHTML=''; }
-    else{
-      const totalFiltro = lista.reduce((s,g)=>s+(g.valor||0),0);
-      const mesAtual = meses[0];
-      const totalMesAtual = gastos.filter(g=>gastoMesKey(g.data)===mesAtual).reduce((s,g)=>s+(g.valor||0),0);
-      const porCat = {};
-      lista.forEach(g=>{ porCat[g.cat||'Outros'] = (porCat[g.cat||'Outros']||0)+(g.valor||0); });
-      const topCat = Object.entries(porCat).sort((a,b)=>b[1]-a[1])[0];
-      const mediaMes = meses.length ? gastos.reduce((s,g)=>s+(g.valor||0),0)/meses.length : 0;
+  renderResumo(doMes);
 
-      const card = (label,val,sub,cor) => `<div class="card" style="border-top:3px solid ${cor};">
-        <div style="font-size:11px;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">${label}</div>
-        <div style="font-family:'Playfair Display',serif;font-size:24px;color:${cor};">${val}</div>
-        <div style="font-size:11px;color:var(--text-light);margin-top:2px;">${sub}</div>
-      </div>`;
-
-      kpis.innerHTML =
-        card(gastosMesFiltro==='todos'?'Total geral':'Total do mês', R(totalFiltro),
-             lista.length + (lista.length===1?' compra anotada':' compras anotadas'), 'var(--brown)') +
-        card('Mês mais recente', R(totalMesAtual), gastoMesLabel(mesAtual), 'var(--green)') +
-        card('Média por mês', R(mediaMes), meses.length + (meses.length===1?' mês com dados':' meses com dados'), 'var(--green)') +
-        (topCat ? card('Onde mais sai dinheiro', topCat[0], R(topCat[1]) + ' no período', 'var(--amber)') : '');
-    }
-  }
-
-  if(!lista.length){
-    tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text-light);font-size:13px;">'
-      + (gastos.length ? 'Nenhuma compra neste mês.' : 'Nenhuma compra anotada ainda. Use o formulário acima para começar.')
-      + '</td></tr>';
+  if(!doMes.length){
+    const temOutras = notas.length > 0;
+    lista.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-light);font-size:13px;line-height:1.7;">
+      Nenhuma nota neste mês.<br>${temOutras ? 'Use as setas ‹ › lá em cima para ver outros meses.' : 'Toque em <strong>+ Nova nota</strong> para anotar a primeira compra.'}</div>`;
     return;
   }
-
-  const inp = 'border:none;background:transparent;font-family:\'DM Sans\',sans-serif;font-size:13px;color:var(--text);width:100%;';
-  const selSty = 'border:none;background:transparent;font-family:\'DM Sans\',sans-serif;font-size:11px;color:var(--text-light);cursor:pointer;max-width:96px;';
-  let html = '', mesAnterior = null;
-
-  lista.forEach(g => {
-    const mk = gastoMesKey(g.data);
-    if(gastosMesFiltro==='todos' && mk !== mesAnterior){
-      const totMes = lista.filter(x=>gastoMesKey(x.data)===mk).reduce((s,x)=>s+(x.valor||0),0);
-      html += `<tr style="background:var(--cream-dark);">
-        <td colspan="4" style="font-size:12px;font-weight:500;color:var(--brown);padding:8px 10px;">${gastoMesLabel(mk)}</td>
-        <td style="text-align:right;font-size:12px;font-weight:500;color:var(--brown);padding:8px 10px;">${R(totMes)}</td><td></td><td></td></tr>`;
-      mesAnterior = mk;
-    }
-    const pu = precoUnit(g);
-    html += `<tr>
-      <td style="white-space:nowrap;"><input type="date" value="${g.data||''}" style="${inp}" onchange="updateGasto('${g.id}','data',this.value)"></td>
-      <td>
-        <input type="text" value="${(g.nome||'').replace(/"/g,'&quot;')}" style="${inp}" onchange="updateGasto('${g.id}','nome',this.value)">
-        <input type="text" value="${(g.local||'').replace(/"/g,'&quot;')}" placeholder="+ onde comprou" style="${inp}font-size:10.5px;color:var(--text-light);margin-top:1px;" onchange="updateGasto('${g.id}','local',this.value)">
-      </td>
-      <td style="white-space:nowrap;">
-        <select style="${selSty}" onchange="updateGasto('${g.id}','cat',this.value)">${opcoes(GASTO_CATS, g.cat||'Outros')}</select>
-      </td>
-      <td style="text-align:right;white-space:nowrap;">
-        <input type="number" step="0.01" min="0" value="${g.qtd||''}" placeholder="—" style="${inp}text-align:right;width:52px;" onchange="updateGasto('${g.id}','qtd',this.value)"><select style="${selSty}" onchange="updateGasto('${g.id}','un',this.value)">${opcoes(GASTO_UNS, g.un||'kg')}</select>
-      </td>
-      <td style="text-align:right;white-space:nowrap;"><input type="number" step="0.01" min="0" value="${g.valor||0}" style="${inp}text-align:right;width:76px;" onchange="updateGasto('${g.id}','valor',this.value)"></td>
-      <td style="text-align:right;white-space:nowrap;font-size:12px;color:${pu?'var(--text-mid)':'var(--text-light)'};">${pu?R(pu)+'/'+(g.un||''):'—'}</td>
-      <td><button class="btn btn-red" style="padding:3px 10px;font-size:11px;" onclick="removeGasto('${g.id}')">✕</button></td>
-    </tr>`;
-  });
-  tbody.innerHTML = html;
+  lista.innerHTML = doMes.map(renderNota).join('');
 }
 
 function exportGastos(){
-  if(!gastos.length){ showToast('Nenhuma compra para baixar.'); return; }
+  syncNotas();
+  if(!notas.length){ showToast('Nenhuma nota para baixar.'); return; }
   const esc = s => '"' + String(s==null?'':s).replace(/"/g,'""') + '"';
-  const lista = [...gastos].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  const rows = ['Data,O que comprou,Tipo,Onde comprou,Quantidade,Unidade,Valor,Preco unitario'];
-  lista.forEach(g => {
-    const pu = precoUnit(g);
-    rows.push([esc(fmtDataBR(g.data)),esc(g.nome),esc(g.cat),esc(g.local),
-               g.qtd?g.qtd:'',esc(g.qtd?(g.un||''):''),(g.valor||0).toFixed(2),pu?pu.toFixed(2):''].join(','));
+  const ordem = [...notas].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  const rows = ['Data,Mercado,Total da nota,Item,Quantidade,Unidade,Valor do item'];
+  ordem.forEach(n=>{
+    const itens = n.itens||[];
+    if(!itens.length){ rows.push([esc(fmtDataBR(n.data)),esc(n.mercado),(n.total||0).toFixed(2),'','','',''].join(',')); return; }
+    itens.forEach((it,i)=>{
+      // total só na primeira linha da nota, para a soma no Excel não duplicar
+      rows.push([esc(fmtDataBR(n.data)),esc(n.mercado),i===0?(n.total||0).toFixed(2):'',esc(it.nome),it.qtd||'',esc(it.qtd?(it.un||''):''),it.valor?(+it.valor).toFixed(2):''].join(','));
+    });
   });
   rows.push('');
-  rows.push([esc('TOTAL'),'','','','','',lista.reduce((s,g)=>s+(g.valor||0),0).toFixed(2),''].join(','));
-  const blob = new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'gastos-la-vera.csv';
-  a.click();
-  showToast('Planilha baixada!');
+  rows.push([esc('TOTAL'),'',ordem.reduce((s,n)=>s+(n.total||0),0).toFixed(2),'','','',''].join(','));
+  const ok = baixarArquivo('gastos-la-vera.csv', '\ufeff'+rows.join('\n'), 'text/csv;charset=utf-8;');
+  showToast(ok ? 'Planilha baixada!' : 'O navegador bloqueou o download.');
 }
-
 
 // ══════════ BACKUP E MIGRAÇÃO ══════════
 
@@ -4224,7 +4709,7 @@ function renderBackup(){
   const proj = (SB_URL||'').replace('https://','').split('.')[0];
   const linhas = Object.entries(SB_TABLES).map(([k,t])=>{
     const n = (lsLoad(k,null)!==null) ? '✓ tem dados neste aparelho' : '— vazio neste aparelho';
-    const extra = (k==='lv_params') ? '<div style="font-size:10.5px;color:var(--text-light);padding-left:10px;">↳ os gastos de mercado ficam guardados aqui dentro</div>' : '';
+    const extra = (k==='lv_params') ? '<div style="font-size:10.5px;color:var(--text-light);padding-left:10px;">↳ as notas de mercado também viajam por aqui</div>' : '';
     return `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;">
       <span style="font-family:monospace;font-size:11.5px;">${t}</span>
       <span style="font-size:11px;color:var(--text-light);">${n}</span></div>${extra}`;
@@ -4262,9 +4747,15 @@ async function exportarBackup(){
     }
   }
 
+  // Cópias locais que não estão em tabela própria (notas e mercados)
+  try{ syncNotas(); }catch{}
+  const locais = {};
+  ['lv_notas','lv_notas_del','lv_mercados'].forEach(k=>{ const v = lsLoad(k,null); if(v!==null) locais[k]=v; });
+  if(locais.lv_notas) relato.push(`notas de mercado: ${locais.lv_notas.length} (aparelho)`);
   const pacote = {
     portal: 'La Vera',
-    versao: 1,
+    versao: 2,
+    locais,
     gerado_em: new Date().toISOString(),
     origem: SB_URL,
     dados
@@ -4319,6 +4810,9 @@ async function importarBackup(){
   }
 
   const chaves = Object.keys(dados).filter(k => SB_TABLES[k]);
+  // Backup novo também traz notas e mercados guardados no aparelho
+  const locaisBk = (pacote.locais && typeof pacote.locais==='object') ? pacote.locais : {};
+  Object.entries(locaisBk).forEach(([k,v])=>{ if(['lv_notas','lv_notas_del','lv_mercados'].includes(k)) lsSave(k, v); });
   if(!chaves.length){ if(st) st.innerHTML = '❌ O arquivo não tem nenhum dado reconhecido.'; return; }
 
   if(!confirm('Isto vai substituir os dados atuais por '+chaves.length+' conjuntos do arquivo. Continuar?')) return;
@@ -4763,7 +5257,7 @@ function totalCustos(){return custos.reduce((s,c)=>s+(parseFloat(c.valor)||0),0)
 
 // ══════════ INIT ══════════
 document.getElementById('header-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
-const _t=totalCustos();if(_t>0){params.fixo=_t;save('lv_params',params);}
+const _t=totalCustos();if(_t>0 && params.fixo!==_t){params.fixo=_t;save('lv_params',params);}  // antes gravava a cada abertura e apagava dados de outros aparelhos
 showPage('financial', document.querySelector('.sidebar-btn[data-page="financial"]'));
 renderCalendar();
 // Sync from Supabase after UI is ready
