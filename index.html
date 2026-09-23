@@ -517,13 +517,14 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
         <input type="date" id="n-data" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
       </div>
       <div style="flex:1;min-width:120px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Total pago (R$)</label>
-        <input type="number" id="n-total" placeholder="0,00" step="0.01" min="0" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
+        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Total pago (R$) <span style="color:var(--text-light);">— opcional</span></label>
+        <input type="number" id="n-total" placeholder="somar os itens" step="0.01" min="0" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
       </div>
       <button class="btn btn-brown" onclick="criarNota()" style="padding:10px 20px;">Criar nota</button>
     </div>
     <div style="font-size:11.5px;color:var(--text-light);margin-top:10px;line-height:1.6;">
-      💡 Depois de criar, a nota abre sozinha para você anotar o que comprou, com quantidade e valor de cada item.
+      💡 Depois de criar, a nota abre sozinha para você anotar o que comprou, com quantidade e valor de cada item.<br>
+      💡 <strong>Não precisa saber o total.</strong> Deixe em branco e o portal soma sozinho o valor dos itens que você anotar. Se preferir, digite o total do cupom e ele fica fixo.
     </div>
     <div style="margin-top:12px;border-top:1px solid var(--cream-border);padding-top:10px;">
       <div onclick="toggleMercadosBox()" style="font-size:12px;color:var(--brown);cursor:pointer;user-select:none;"><span id="merc-box-seta">▸</span> Mercados cadastrados</div>
@@ -537,6 +538,8 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
       <div class="card-title" style="margin:0;" id="notas-titulo">📋 Notas</div>
       <button class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:6px 12px;font-size:12px;" onclick="exportGastos()">⬇ Baixar planilha (todas as notas)</button>
+        <button class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:6px 12px;font-size:12px;" onclick="document.getElementById('csv-notas').click()">⬆ Importar planilha</button>
+        <input type="file" id="csv-notas" accept=".csv,text/csv" style="display:none;" onchange="importarPlanilhaNotas(this)">
     </div>
     <div id="notas-lista"></div>
   </div>
@@ -569,6 +572,8 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
     <button class="btn btn-brown" onclick="importarBackup()">Restaurar</button>
     <div id="restore-status" style="font-size:12px;color:var(--text-light);margin-top:10px;line-height:1.6;"></div>
   </div>
+
+  <div id="copia-auto"></div>
 
   <div class="card" style="border-top:3px solid var(--brown);">
     <div class="card-title">🔌 Onde os dados estão guardados</div>
@@ -1139,9 +1144,10 @@ function load(k, d){
 // portal (precificação, custos, abertura), muitas vezes a partir de uma cópia
 // velha do objeto. Antes de gravar, juntamos as notas de todas as fontes
 // conhecidas — assim nenhuma gravação consegue apagar notas de outro aparelho.
+let _restaurando = false;                 // durante a restauração, não juntamos nada
 function prepararParams(v){
   try{
-    if(!v || typeof v !== 'object') return v;
+    if(_restaurando || !v || typeof v !== 'object') return v;
     const ls = k => { try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch{ return null; } };
     const cache = (_cache['lv_params'] && typeof _cache['lv_params']==='object') ? _cache['lv_params'] : {};
     const arr = x => Array.isArray(x) ? x : [];
@@ -4041,7 +4047,29 @@ function juntarNotas(listas, apagadas){
   return ordenarNotas([...mapa.values()]);
 }
 
+// Antes de converter qualquer coisa, o portal guarda sozinho uma cópia do
+// estado atual deste aparelho. Feita uma única vez e nunca sobrescrita, é a
+// rede de segurança para quem não lembrar de baixar o backup.
+const SNAPSHOT = 'lv_copia_seguranca';
+function criarCopiaSeguranca(){
+  try{
+    if(localStorage.getItem(SNAPSHOT)) return;                 // já existe: não mexe
+    const dados = {};
+    ['lv_gastos','lv_gastos_del','lv_notas','lv_notas_del','lv_mercados','lv_params'].forEach(k=>{
+      const v = lsLoad(k, null);
+      if(v !== null) dados[k] = v;
+    });
+    const temAlgo = (Array.isArray(dados.lv_gastos) && dados.lv_gastos.length)
+                 || (Array.isArray(dados.lv_notas)  && dados.lv_notas.length)
+                 || (dados.lv_params && Array.isArray(dados.lv_params.gastos) && dados.lv_params.gastos.length)
+                 || (dados.lv_params && Array.isArray(dados.lv_params.notas)  && dados.lv_params.notas.length);
+    if(!temAlgo) return;                                        // nada para guardar ainda
+    lsSave(SNAPSHOT, { criada_em: new Date().toISOString(), dados });
+  }catch(e){ console.warn('cópia de segurança:', e); }
+}
+
 function syncNotas(){
+  criarCopiaSeguranca();
   const p        = paramsObj();
   const apagadas = lerNotasApagadas(p);
   const locais   = lerLista(NOTAS_LOCAL);
@@ -4130,10 +4158,9 @@ function criarNota(){
   const total = parseFloat(document.getElementById('n-total').value)||0;
   if(!mercado){ showToast('Escolha ou escreva o mercado.'); return; }
   if(!data){ showToast('Escolha a data.'); return; }
-  if(total<=0){ showToast('Coloque o total que você pagou.'); return; }
-
   garantirMercado(mercado);
-  const nota = { id: novoId('n'), ts: Date.now(), mercado, data, total, itens: [] };
+  // Sem total digitado, a nota soma sozinha o valor dos itens
+  const nota = { id: novoId('n'), ts: Date.now(), mercado, data, total: total>0?total:0, totalAuto: !(total>0), itens: [] };
   notas.push(nota);
   persistNotas();
   notasAbertas.add(nota.id);
@@ -4149,6 +4176,23 @@ function criarNota(){
   showToast('Nota criada! Agora anote o que comprou.');
 }
 function acharNota(id){ return notas.find(n=>mesmoId(n.id,id)); }
+function somaDosItens(n){ return (n.itens||[]).reduce((s,i)=>s+(parseFloat(i.valor)||0),0); }
+// Notas em modo automático têm o total sempre igual à soma dos itens
+function recalcularTotal(n){ if(n && n.totalAuto) n.total = somaDosItens(n); return n; }
+function corrigirTodasAsNotas(){
+  syncNotas();
+  const alvo = notas.filter(n=>divergencia(n));
+  if(!alvo.length){ showToast('Nenhuma nota para corrigir.'); return; }
+  alvo.forEach(n=>{ n.totalAuto = true; recalcularTotal(n); n.ts = Date.now(); });
+  persistNotas(); renderGastos();
+  showToast(alvo.length+(alvo.length===1?' nota corrigida.':' notas corrigidas.'));
+}
+function usarSomaItens(id){
+  syncNotas();
+  const n = acharNota(id); if(!n) return;
+  n.totalAuto = true; recalcularTotal(n); n.ts = Date.now();
+  persistNotas(); renderGastos(); showToast('Agora o total soma os itens sozinho.');
+}
 function toggleNota(id){
   if(notasAbertas.has(id)) notasAbertas.delete(id); else notasAbertas.add(id);
   if(gConfirmando && gConfirmando.indexOf(id)>=0) gConfirmando = null;
@@ -4191,6 +4235,7 @@ function adicionarItem(notaId){
   const valor = parseFloat((document.getElementById('ni-val-'+notaId)||{}).value)||0;
   n.itens = n.itens || [];
   n.itens.push({ id: novoId('i'), nome: nomeCanonico(nome), qtd, un, valor });
+  recalcularTotal(n);
   n.ts = Date.now();
   persistNotas(); renderGastos();
   // pronto para o próximo item, sem precisar clicar
@@ -4212,6 +4257,7 @@ function removerItem(notaId, itemId, confirmado){
   const n = acharNota(notaId); if(!n) return;
   n.itens = (n.itens||[]).filter(i=>!mesmoId(i.id,itemId));
   itemEmEdicao = null;
+  recalcularTotal(n);
   n.ts = Date.now();
   persistNotas(); renderGastos();
   showToast('Item apagado.');
@@ -4248,7 +4294,16 @@ function renderSelectMercado(){
 
 // ── Mês exibido ──
 function mesAtualKey(){ return hojeISO().slice(0,7); }
-function mesExibido(){ if(!gastosMesFiltro) gastosMesFiltro = mesAtualKey(); return gastosMesFiltro; }
+function mesesComNotas(){ return [...new Set(notas.map(n=>gastoMesKey(n.data)).filter(Boolean))].sort(); }
+// Abre no mês atual; se ele estiver vazio, vai para o mês mais recente que tem notas
+function mesExibido(){
+  if(!gastosMesFiltro){
+    const atual = mesAtualKey();
+    const meses = mesesComNotas();
+    gastosMesFiltro = (meses.includes(atual) || !meses.length) ? atual : meses[meses.length-1];
+  }
+  return gastosMesFiltro;
+}
 function mudarMes(delta){
   const [a,m] = mesExibido().split('-').map(Number);
   const d = new Date(a, m-1+delta, 1);
@@ -4336,11 +4391,15 @@ function salvarEdicaoNota(id){
     if(!merc){ showToast('Escreva o nome do mercado.'); return; }
   }
   const data  = (document.getElementById('en-data-'+id)||{}).value;
+  const modo  = ((document.getElementById('en-modo-'+id)||{}).value) || (n.totalAuto?'auto':'fixo');
   const total = parseFloat((document.getElementById('en-total-'+id)||{}).value);
   if(!data){ showToast('Escolha a data.'); return; }
-  if(!(total>0)){ showToast('Coloque o total que você pagou.'); return; }
+  if(modo==='fixo' && !(total>0)){ showToast('Digite o total do cupom, ou escolha somar os itens.'); return; }
   if(merc){ n.mercado = merc; garantirMercado(merc); }
-  n.data = data; n.total = total; n.ts = Date.now();
+  n.data = data;
+  n.totalAuto = (modo==='auto');
+  if(n.totalAuto) recalcularTotal(n); else n.total = total;
+  n.ts = Date.now();
   notaEmEdicao = null;
   persistNotas();
   gastosMesFiltro = gastoMesKey(n.data) || gastosMesFiltro;
@@ -4359,6 +4418,7 @@ function salvarEdicaoItem(notaId, itemId){
   it.qtd   = parseFloat(document.getElementById('ie-qtd').value)||0;
   it.un    = document.getElementById('ie-un').value||'kg';
   it.valor = parseFloat(document.getElementById('ie-val').value)||0;
+  recalcularTotal(n);
   n.ts = Date.now();
   itemEmEdicao = null;
   persistNotas(); renderGastos();
@@ -4376,7 +4436,11 @@ function renderNota(n){
         <div style="font-size:14px;color:var(--text);font-weight:500;"><span style="color:var(--text-light);font-size:11px;margin-right:6px;">${aberta?'▾':'▸'}</span>${escHtml(n.mercado||'Sem mercado')}</div>
         <div style="font-size:11.5px;color:var(--text-light);margin-top:2px;margin-left:17px;">${fmtDataBR(n.data)} · ${itens.length ? itens.length+(itens.length===1?' item':' itens') : 'sem itens anotados'}</div>
       </div>
-      <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--brown);white-space:nowrap;">${brl(n.total)}</div>
+      <div style="text-align:right;white-space:nowrap;">
+        <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--brown);">${brl(n.total)}</div>
+        ${n.totalAuto?`<div style="font-size:10px;color:var(--text-light);">soma dos itens</div>`
+          :(divergencia(n)?`<div style="font-size:10px;color:var(--amber);">⚠️ não bate com os itens</div>`:'')}
+      </div>
     </div>`;
   if(!aberta) return `<div id="nota-${n.id}" style="border:1px solid var(--cream-border);border-radius:10px;margin-bottom:8px;background:#fff;">${cab}</div>`;
 
@@ -4390,8 +4454,12 @@ function renderNota(n){
         <input type="text" id="en-merc-novo-${n.id}" placeholder="Nome do mercado" style="${inp}width:100%;margin-top:6px;display:none;"></div>
       <div style="flex:1;min-width:130px;"><div style="font-size:10.5px;color:var(--text-light);margin-bottom:2px;">Data</div>
         <input type="date" id="en-data-${n.id}" value="${n.data||''}" style="${inp}width:100%;"></div>
-      <div style="flex:1;min-width:110px;"><div style="font-size:10.5px;color:var(--text-light);margin-bottom:2px;">Total pago (R$)</div>
-        <input type="number" id="en-total-${n.id}" step="0.01" min="0" value="${n.total||0}" style="${inp}width:100%;text-align:right;"></div>
+      <div style="flex:1;min-width:150px;"><div style="font-size:10.5px;color:var(--text-light);margin-bottom:2px;">Total</div>
+        <select id="en-modo-${n.id}" onchange="document.getElementById('en-total-${n.id}').style.display=this.value==='fixo'?'block':'none'" style="${inp}width:100%;cursor:pointer;">
+          <option value="auto" ${n.totalAuto?'selected':''}>Somar os itens (${brl(somaDosItens(n))})</option>
+          <option value="fixo" ${n.totalAuto?'':'selected'}>Digitar o total do cupom</option>
+        </select>
+        <input type="number" id="en-total-${n.id}" step="0.01" min="0" value="${n.total||0}" style="${inp}width:100%;text-align:right;margin-top:6px;display:${n.totalAuto?'none':'block'};"></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
         <button onclick="salvarEdicaoNota('${n.id}')" class="btn btn-brown" style="padding:8px 14px;font-size:12px;">Salvar</button>
         <button onclick="cancelarEdicaoNota()" class="btn" style="background:#fff;color:var(--text-mid);padding:8px 14px;font-size:12px;">Cancelar</button>
@@ -4469,17 +4537,45 @@ function qtdBase(qtd, un){
 function fmtQtd(v){ return (+v).toLocaleString('pt-BR',{maximumFractionDigits:3}); }
 function textoQtds(obj){ return Object.entries(obj).filter(([,q])=>q>0).map(([u,q])=>fmtQtd(q)+' '+u).join(' + '); }
 
+// Divergência entre o total digitado e a soma dos itens: um nunca substitui
+// o outro em silêncio — o portal avisa e deixa a pessoa decidir.
+function divergencia(n){
+  if(!n || n.totalAuto) return 0;
+  if(!(n.itens||[]).some(i=>(i.valor||0)>0)) return 0;
+  const d = somaDosItens(n) - (n.total||0);
+  return Math.abs(d) < 0.01 ? 0 : d;              // >0: itens passaram o total
+}
 function somaItensHtml(n){
-  const comValor = (n.itens||[]).filter(i=>(i.valor||0)>0);
-  if(!comValor.length) return '';
-  const soma = comValor.reduce((s,i)=>s+(i.valor||0),0);
-  const dif = (n.total||0) - soma;
-  if(Math.abs(dif) < 0.01)
-    return `<div style="font-size:11.5px;color:var(--green);margin-top:8px;">✓ Os itens somam exatamente o total da nota.</div>`;
-  const txt = dif > 0
-    ? `Itens anotados somam ${brl(soma)} — faltam ${brl(dif)} para chegar no total da nota.`
-    : `Itens anotados somam ${brl(soma)} — ${brl(-dif)} a mais que o total da nota. Vale conferir.`;
-  return `<div style="font-size:11.5px;color:${dif>0?'var(--text-light)':'var(--amber)'};margin-top:8px;">${txt}</div>`;
+  const itens = n.itens||[];
+  const soma = somaDosItens(n);
+  const semValor = itens.filter(i=>!((i.valor||0)>0)).length;
+  const alerta = semValor
+    ? `<div style="font-size:11.5px;color:var(--text-light);margin-top:4px;">${semValor} ${semValor===1?'item está':'itens estão'} sem valor — ${semValor===1?'ele não entra':'eles não entram'} na soma.</div>` : '';
+
+  if(n.totalAuto){
+    if(!itens.length) return `<div style="font-size:11.5px;color:var(--text-light);margin-top:8px;">O total desta nota é a soma dos itens. Anote abaixo o que você comprou.</div>`;
+    return `<div style="font-size:12.5px;color:var(--green);margin-top:8px;">= Total da nota: <strong>${brl(soma)}</strong> (soma dos ${itens.length} ${itens.length===1?'item':'itens'})</div>${alerta}`;
+  }
+  if(!itens.some(i=>(i.valor||0)>0)) return alerta;
+
+  const dif = divergencia(n);
+  if(!dif) return `<div style="font-size:12px;color:var(--green);margin-top:8px;">✓ A soma dos itens bate com o total da nota (${brl(n.total)}).</div>${alerta}`;
+
+  const passou = dif > 0;
+  const titulo = passou
+    ? `A soma dos itens passou o total da nota.`
+    : `A soma dos itens não coincide com o total da nota.`;
+  const detalhe = passou
+    ? `O total da nota é <strong>${brl(n.total)}</strong>, mas os itens somam <strong>${brl(soma)}</strong> — ${brl(dif)} a mais. Confira se algum valor foi digitado errado ou se o total da nota está menor do que deveria.`
+    : `O total da nota é <strong>${brl(n.total)}</strong> e os itens somam <strong>${brl(soma)}</strong> — faltam ${brl(-dif)}. Pode ser que ainda tenha item para anotar.`;
+  return `<div style="background:var(--amber-soft);border:1px solid var(--amber);border-radius:8px;padding:10px 12px;margin-top:10px;">
+      <div style="font-size:12.5px;color:var(--amber);font-weight:500;margin-bottom:3px;">⚠️ ${titulo}</div>
+      <div style="font-size:11.5px;color:var(--text-mid);line-height:1.6;">${detalhe}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <button onclick="usarSomaItens('${n.id}')" class="btn" style="background:#fff;border:1px solid var(--amber);color:var(--amber);padding:6px 12px;font-size:11.5px;">Usar a soma dos itens (${brl(soma)})</button>
+        <button onclick="iniciarEdicaoNota('${n.id}')" class="btn" style="background:#fff;border:1px solid var(--cream-border);color:var(--text-mid);padding:6px 12px;font-size:11.5px;">Corrigir o total da nota</button>
+      </div>
+    </div>${alerta}`;
 }
 
 // Cada ingrediente guarda também as compras, uma por nota, da mais antiga para a mais nova
@@ -4611,8 +4707,13 @@ function renderGastos(){
   const doMes = notas.filter(n => gastoMesKey(n.data) === mes);
   const total = doMes.reduce((s,n)=>s+(n.total||0),0);
   const linha = document.getElementById('g-mes-total');
+  const comDif = doMes.filter(n=>divergencia(n)).length;
   if(linha) linha.innerHTML = doMes.length
     ? `Você gastou <strong style="color:var(--brown);font-size:15px;">${brl(total)}</strong> em ${doMes.length} ${doMes.length===1?'nota':'notas'} neste mês.`
+      + (comDif?`<div style="background:var(--amber-soft);border:1px solid var(--amber);border-radius:8px;padding:9px 11px;margin-top:8px;">
+          <div style="color:var(--amber);font-size:12px;">⚠️ ${comDif} ${comDif===1?'nota tem':'notas têm'} a soma dos itens diferente do total anotado.</div>
+          <button onclick="corrigirTodasAsNotas()" class="btn" style="background:#fff;border:1px solid var(--amber);color:var(--amber);padding:6px 12px;font-size:11.5px;margin-top:7px;">Usar a soma dos itens ${comDif===1?'nessa nota':'nessas notas'}</button>
+        </div>`:'')
     : `Nenhuma nota em ${gastoMesLabel(mes)}.`;
   const tit = document.getElementById('notas-titulo');
   if(tit) tit.textContent = '📋 Notas de ' + gastoMesLabel(mes);
@@ -4621,11 +4722,119 @@ function renderGastos(){
 
   if(!doMes.length){
     const temOutras = notas.length > 0;
+    const meses = mesesComNotas().filter(m=>m!==mes);
+    const alvo = meses[meses.length-1];
+    const qtd = alvo ? notas.filter(n=>gastoMesKey(n.data)===alvo).length : 0;
     lista.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-light);font-size:13px;line-height:1.7;">
-      Nenhuma nota neste mês.<br>${temOutras ? 'Use as setas ‹ › lá em cima para ver outros meses.' : 'Toque em <strong>+ Nova nota</strong> para anotar a primeira compra.'}</div>`;
+      Nenhuma nota em ${gastoMesLabel(mes)}.<br>
+      ${temOutras
+        ? `Suas notas estão em outro mês.<br>
+           <button onclick="irParaMes('${alvo}')" class="btn btn-brown" style="margin-top:12px;padding:10px 18px;font-size:13px;">Ver ${gastoMesLabel(alvo)} (${qtd} ${qtd===1?'nota':'notas'})</button>
+           <div style="font-size:11.5px;margin-top:8px;">Ou use as setas ‹ › lá em cima.</div>`
+        : 'Toque em <strong>+ Nova nota</strong> para anotar a primeira compra.'}</div>`;
     return;
   }
   lista.innerHTML = doMes.map(renderNota).join('');
+}
+
+// ── Importar de volta a planilha baixada do portal ──
+function parseCSV(texto){
+  const linhas = [];
+  let campo = '', linha = [], aspas = false;
+  texto = texto.replace(/^\ufeff/, '').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  for(let i=0;i<texto.length;i++){
+    const ch = texto[i];
+    if(aspas){
+      if(ch === '"'){ if(texto[i+1] === '"'){ campo += '"'; i++; } else aspas = false; }
+      else campo += ch;
+    } else if(ch === '"') aspas = true;
+    else if(ch === ','){ linha.push(campo); campo = ''; }
+    else if(ch === '\n'){ linha.push(campo); linhas.push(linha); linha = []; campo = ''; }
+    else campo += ch;
+  }
+  if(campo.length || linha.length){ linha.push(campo); linhas.push(linha); }
+  return linhas;
+}
+function numeroBR(s){
+  s = String(s==null?'':s).trim();
+  if(!s) return 0;
+  if(s.includes(',') && s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g,'').replace(',','.');
+  const v = parseFloat(s.replace(/[^\d.\-]/g,''));
+  return isNaN(v) ? 0 : v;
+}
+function dataParaISO(s){
+  s = String(s||'').trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  return m ? (m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')) : '';
+}
+// Assinatura do conteúdo: reimportar a mesma planilha não duplica nada
+function assinaturaNota(n){
+  const itens = (n.itens||[]).map(i=>normalizar(i.nome)+'|'+(i.qtd||0)+'|'+(i.un||'')+'|'+(+i.valor||0)).sort().join(';');
+  return normalizar(n.mercado)+'|'+(n.data||'')+'|'+itens;
+}
+
+function importarPlanilhaNotas(input){
+  const arq = input && input.files && input.files[0];
+  if(!arq) return;
+  const leitor = new FileReader();
+  leitor.onload = () => {
+    input.value = '';
+    try{ aplicarPlanilhaNotas(String(leitor.result||'')); }
+    catch(e){ console.warn(e); showToast('Não consegui ler essa planilha.'); }
+  };
+  leitor.readAsText(arq, 'UTF-8');
+}
+
+function aplicarPlanilhaNotas(texto){
+  const linhas = parseCSV(texto).filter(l => l.some(x => String(x).trim() !== ''));
+  if(!linhas.length){ showToast('A planilha está vazia.'); return; }
+  const cab = linhas[0].map(h => normalizar(h));
+  const col = (...nomes) => { for(const n of nomes){ const i = cab.indexOf(normalizar(n)); if(i >= 0) return i; } return -1; };
+  const cData = col('data'), cMerc = col('mercado'), cTot = col('total da nota'),
+        cItem = col('item','o que comprou'), cQtd = col('quantidade','qtd'),
+        cUn = col('unidade','un'), cVal = col('valor do item','valor');
+  if(cData < 0 || cMerc < 0 || cItem < 0){ showToast('Essa planilha não parece ser a baixada pelo portal.'); return; }
+
+  const novas = []; let atual = null;
+  linhas.slice(1).forEach(l => {
+    const rotulo = String(l[cData]||'').trim().toUpperCase();
+    if(rotulo === 'TOTAL' || rotulo === 'ATENCAO' || rotulo === 'ATENÇÃO') return;
+    const data = dataParaISO(l[cData]);
+    const merc = String(l[cMerc]||'').trim();
+    const tot  = cTot >= 0 ? numeroBR(l[cTot]) : 0;
+    if(!data && !merc) return;
+    const mudou = !atual || (data && data !== atual.data) || (merc && normalizar(merc) !== normalizar(atual.mercado));
+    if(tot > 0 || mudou){
+      atual = { id: novoId('n'), ts: Date.now(), mercado: merc || (atual?atual.mercado:''), data: data || (atual?atual.data:''),
+                total: tot, totalAuto: !(tot > 0), itens: [] };
+      novas.push(atual);
+    }
+    const nome = String(l[cItem]||'').trim();
+    if(nome && atual){
+      atual.itens.push({ id: novoId('i'), nome, qtd: cQtd>=0?numeroBR(l[cQtd]):0,
+                         un: (cUn>=0 ? String(l[cUn]||'').trim() : '') || 'kg',
+                         valor: cVal>=0?numeroBR(l[cVal]):0 });
+    }
+  });
+  novas.forEach(n => { if(n.totalAuto) recalcularTotal(n); });
+  const validas = novas.filter(n => n.data && ((n.itens||[]).length || n.total > 0));
+  if(!validas.length){ showToast('Não encontrei notas nessa planilha.'); return; }
+
+  syncNotas();
+  const jaTem = new Set(notas.map(assinaturaNota));
+  const ineditas = validas.filter(n => !jaTem.has(assinaturaNota(n)));
+  const repetidas = validas.length - ineditas.length;
+  if(!ineditas.length){
+    showToast('Essas ' + repetidas + (repetidas===1?' nota já estava':' notas já estavam') + ' no portal.');
+    return;
+  }
+  ineditas.forEach(n => { notas.push(n); garantirMercado(n.mercado); });
+  persistNotas();
+  gastosMesFiltro = gastoMesKey(ineditas[ineditas.length-1].data) || gastosMesFiltro;
+  renderGastos();
+  const itens = ineditas.reduce((s,n)=>s+(n.itens||[]).length, 0);
+  showToast(ineditas.length + (ineditas.length===1?' nota importada':' notas importadas') + ' com ' + itens + (itens===1?' item':' itens') + (repetidas?' · '+repetidas+' já existia'+(repetidas>1?'m':''):''));
 }
 
 function exportGastos(){
@@ -4633,17 +4842,23 @@ function exportGastos(){
   if(!notas.length){ showToast('Nenhuma nota para baixar.'); return; }
   const esc = s => '"' + String(s==null?'':s).replace(/"/g,'""') + '"';
   const ordem = [...notas].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  const rows = ['Data,Mercado,Total da nota,Item,Quantidade,Unidade,Valor do item'];
+  const rows = ['Data,Mercado,Total da nota,Soma dos itens,Item,Quantidade,Unidade,Valor do item'];
   ordem.forEach(n=>{
     const itens = n.itens||[];
-    if(!itens.length){ rows.push([esc(fmtDataBR(n.data)),esc(n.mercado),(n.total||0).toFixed(2),'','','',''].join(',')); return; }
+    if(!itens.length){ rows.push([esc(fmtDataBR(n.data)),esc(n.mercado),(n.total||0).toFixed(2),'0.00','','','',''].join(',')); return; }
     itens.forEach((it,i)=>{
       // total só na primeira linha da nota, para a soma no Excel não duplicar
-      rows.push([esc(fmtDataBR(n.data)),esc(n.mercado),i===0?(n.total||0).toFixed(2):'',esc(it.nome),it.qtd||'',esc(it.qtd?(it.un||''):''),it.valor?(+it.valor).toFixed(2):''].join(','));
+      rows.push([esc(fmtDataBR(n.data)),esc(n.mercado),i===0?(n.total||0).toFixed(2):'',i===0?somaDosItens(n).toFixed(2):'',esc(it.nome),it.qtd||'',esc(it.qtd?(it.un||''):''),it.valor?(+it.valor).toFixed(2):''].join(','));
     });
   });
   rows.push('');
-  rows.push([esc('TOTAL'),'',ordem.reduce((s,n)=>s+(n.total||0),0).toFixed(2),'','','',''].join(','));
+  const totNotas = ordem.reduce((s,n)=>s+(n.total||0),0);
+  const totItens = ordem.reduce((s,n)=>s+somaDosItens(n),0);
+  rows.push([esc('TOTAL'),'',totNotas.toFixed(2),totItens.toFixed(2),'','','',''].join(','));
+  if(Math.abs(totNotas-totItens) >= 0.01){
+    const divergentes = ordem.filter(n=>divergencia(n)).length;
+    rows.push([esc('ATENCAO'),esc(divergentes+' nota(s) com total diferente da soma dos itens - confira no portal'),'','','','','',''].join(','));
+  }
   const ok = baixarArquivo('gastos-la-vera.csv', '\ufeff'+rows.join('\n'), 'text/csv;charset=utf-8;');
   showToast(ok ? 'Planilha baixada!' : 'O navegador bloqueou o download.');
 }
@@ -4703,7 +4918,59 @@ function copiarTexto(areaId){
   }
   showToast(ok ? 'Copiado!' : 'Selecione o texto e use Ctrl+C.');
 }
+function renderCopiaAuto(){
+  const el = document.getElementById('copia-auto'); if(!el) return;
+  const cp = lsLoad(SNAPSHOT, null);
+  if(!cp || !cp.dados){ el.innerHTML=''; return; }
+  const n = (cp.dados.lv_notas||[]).length;
+  const g = (cp.dados.lv_gastos||[]).length;
+  const quando = cp.criada_em ? fmtDataBR(cp.criada_em.slice(0,10)) : '';
+  el.innerHTML = `<div class="card" style="border-top:3px solid var(--green);margin-bottom:16px;">
+    <div class="card-title">🛟 Cópia de segurança automática</div>
+    <div style="font-size:12.5px;color:var(--text-mid);line-height:1.7;">
+      O portal guardou sozinho, em ${quando}, uma cópia de como os gastos estavam neste aparelho antes de qualquer conversão${n||g?`: <strong>${n||g} ${((n||g)===1)?'registro':'registros'}</strong>`:''}. Ela fica aqui caso algo não apareça como você esperava.
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+      <button onclick="baixarCopiaAuto()" class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:8px 14px;font-size:12px;">⬇ Baixar essa cópia</button>
+      <button onclick="restaurarCopiaAuto()" class="btn" style="background:#fff;border:1px solid var(--amber);color:var(--amber);padding:8px 14px;font-size:12px;">Restaurar essa cópia</button>
+    </div>
+    <div id="copia-auto-alt" style="margin-top:10px;"></div>
+  </div>`;
+}
+function baixarCopiaAuto(){
+  const cp = lsLoad(SNAPSHOT, null);
+  if(!cp){ showToast('Não existe cópia automática neste aparelho.'); return; }
+  const texto = JSON.stringify({ portal:'La Vera', versao:2, gerado_em:cp.criada_em, locais:cp.dados, dados:{ lv_params: cp.dados.lv_params } }, null, 2);
+  const nome = 'copia-seguranca-la-vera.json';
+  if(!baixarArquivo(nome, texto, 'application/octet-stream')) mostrarParaCopiar('copia-auto-alt', texto, nome);
+  else showToast('Cópia baixada!');
+}
+function restaurarCopiaAuto(){
+  const cp = lsLoad(SNAPSHOT, null);
+  if(!cp || !cp.dados){ showToast('Não existe cópia automática neste aparelho.'); return; }
+  if(!confirm('Voltar os gastos para como estavam em ' + (cp.criada_em?fmtDataBR(cp.criada_em.slice(0,10)):'a data da cópia') + '? O que foi anotado depois disso neste aparelho será substituído.')) return;
+  _restaurando = true;
+  // Deixa o estado EXATAMENTE como estava: o que não existia na cópia é removido
+  const chaves = ['lv_gastos','lv_gastos_del','lv_notas','lv_notas_del','lv_mercados'];
+  chaves.forEach(k=>{
+    if(cp.dados[k] !== undefined) lsSave(k, cp.dados[k]);
+    else { try{ localStorage.removeItem(k); localStorage.removeItem(k+'_ts'); }catch{} }
+  });
+  const p = paramsObj();
+  const pc = cp.dados.lv_params || {};
+  ['gastos','gastosDel','notas','notasDel','mercados'].forEach(f=>{
+    if(pc[f] !== undefined) p[f] = pc[f]; else delete p[f];
+  });
+  save('lv_params', p);
+  _restaurando = false;
+  notas = []; _cache['lv_notas'] = undefined;
+  showToast('Cópia restaurada. Atualize a página.');
+  const alt = document.getElementById('copia-auto-alt');
+  if(alt) alt.innerHTML = '<div style="font-size:12px;color:var(--green);">✓ Restaurado. <strong>Atualize a página</strong> para ver os gastos.</div>';
+}
+
 function renderBackup(){
+  renderCopiaAuto();
   const el = document.getElementById('backup-conn');
   if(!el) return;
   const proj = (SB_URL||'').replace('https://','').split('.')[0];
