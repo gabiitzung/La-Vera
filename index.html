@@ -489,7 +489,7 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
 <!-- INGREDIENTES -->
 <div class="page" id="page-gastos">
   <p class="section-title">Gastos de Mercado</p>
-  <p class="section-sub">Cada ida ao mercado vira uma nota. Aqui você vê quanto gastou em cada mercado e em cada ingrediente no mês.</p>
+  <p class="section-sub">Escolha o mercado e anote o que comprou. A data é escolhida uma vez por ida — não precisa colocar em cada item.</p>
 
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
     <div style="display:flex;align-items:center;gap:4px;">
@@ -497,52 +497,16 @@ main{flex:1;max-width:100%;padding:24px 24px 60px;overflow-x:hidden;}
       <div id="g-mes-label" style="font-family:'Playfair Display',serif;font-size:21px;color:var(--brown);min-width:170px;text-align:center;"></div>
       <button onclick="mudarMes(1)" title="Próximo mês" style="border:1px solid var(--cream-border);background:var(--cream);border-radius:8px;width:36px;height:36px;font-size:18px;color:var(--brown);cursor:pointer;">›</button>
     </div>
-    <button class="btn btn-brown" onclick="abrirNovaNota()" style="padding:10px 18px;">+ Nova nota</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:6px 12px;font-size:12px;" onclick="exportGastos()">⬇ Baixar planilha</button>
+      <button class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:6px 12px;font-size:12px;" onclick="document.getElementById('csv-notas').click()">⬆ Importar planilha</button>
+      <input type="file" id="csv-notas" accept=".csv,text/csv" style="display:none;" onchange="importarPlanilhaNotas(this)">
+    </div>
   </div>
   <div id="g-mes-total" style="font-size:13px;color:var(--text-mid);margin:0 0 16px 4px;"></div>
 
-  <div id="nova-nota-box" class="card" style="display:none;border-top:3px solid var(--green);margin-bottom:16px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div class="card-title" style="margin:0;">🧾 Nova nota</div>
-      <button onclick="fecharNovaNota()" style="border:none;background:transparent;color:var(--text-light);font-size:13px;cursor:pointer;">✕ fechar</button>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-      <div style="flex:2;min-width:180px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Mercado</label>
-        <select id="n-mercado" onchange="toggleNovoMercado()" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);cursor:pointer;"></select>
-        <input type="text" id="n-mercado-novo" placeholder="Nome do mercado novo" style="display:none;width:100%;margin-top:6px;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
-      </div>
-      <div style="flex:1;min-width:140px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Data</label>
-        <input type="date" id="n-data" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
-      </div>
-      <div style="flex:1;min-width:120px;">
-        <label style="display:block;font-size:11px;color:var(--text-light);margin-bottom:3px;">Total pago (R$) <span style="color:var(--text-light);">— opcional</span></label>
-        <input type="number" id="n-total" placeholder="somar os itens" step="0.01" min="0" style="width:100%;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
-      </div>
-      <button class="btn btn-brown" onclick="criarNota()" style="padding:10px 20px;">Criar nota</button>
-    </div>
-    <div style="font-size:11.5px;color:var(--text-light);margin-top:10px;line-height:1.6;">
-      💡 Depois de criar, a nota abre sozinha para você anotar o que comprou, com quantidade e valor de cada item.<br>
-      💡 <strong>Não precisa saber o total.</strong> Deixe em branco e o portal soma sozinho o valor dos itens que você anotar. Se preferir, digite o total do cupom e ele fica fixo.
-    </div>
-    <div style="margin-top:12px;border-top:1px solid var(--cream-border);padding-top:10px;">
-      <div onclick="toggleMercadosBox()" style="font-size:12px;color:var(--brown);cursor:pointer;user-select:none;"><span id="merc-box-seta">▸</span> Mercados cadastrados</div>
-      <div id="merc-box" style="display:none;margin-top:8px;"></div>
-    </div>
-  </div>
-
+  <div id="gastos-conteudo"></div>
   <div id="gastos-resumo"></div>
-
-  <div class="card" style="border-top:3px solid var(--brown);">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-      <div class="card-title" style="margin:0;" id="notas-titulo">📋 Notas</div>
-      <button class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:6px 12px;font-size:12px;" onclick="exportGastos()">⬇ Baixar planilha (todas as notas)</button>
-        <button class="btn" style="background:var(--cream-dark);color:var(--text-mid);padding:6px 12px;font-size:12px;" onclick="document.getElementById('csv-notas').click()">⬆ Importar planilha</button>
-        <input type="file" id="csv-notas" accept=".csv,text/csv" style="display:none;" onchange="importarPlanilhaNotas(this)">
-    </div>
-    <div id="notas-lista"></div>
-  </div>
   <datalist id="dl-itens"></datalist>
 </div>
 
@@ -1262,6 +1226,9 @@ let custos=load('lv_custos',DEFAULT_CUSTOS);
 let notas=[];     // notas de mercado — preenchido por syncNotas()
 let mercados=[];  // mercados cadastrados
 let notasAbertas=new Set();
+let mercadoAberto=null;     // chave do mercado que está aberto; null = lista de mercados
+let escolhendoData=false;   // formulário de "outro dia" aberto
+let _listaMerc=[];
 let gastosMesFiltro=null;   // 'AAAA-MM'; começa no mês atual
 let notaEmEdicao=null, itemEmEdicao=null;
 let gConfirmando=null;   // 'nota:ID' | 'item:NOTA|ITEM' | 'merc:NOME' — confirmação desenhada na tela
@@ -4433,8 +4400,8 @@ function renderNota(n){
   const inp    = "border:1px solid var(--cream-border);border-radius:5px;padding:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:#fff;";
   const cab = `<div onclick="toggleNota('${n.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;">
       <div style="min-width:0;">
-        <div style="font-size:14px;color:var(--text);font-weight:500;"><span style="color:var(--text-light);font-size:11px;margin-right:6px;">${aberta?'▾':'▸'}</span>${escHtml(n.mercado||'Sem mercado')}</div>
-        <div style="font-size:11.5px;color:var(--text-light);margin-top:2px;margin-left:17px;">${fmtDataBR(n.data)} · ${itens.length ? itens.length+(itens.length===1?' item':' itens') : 'sem itens anotados'}</div>
+        <div style="font-size:14px;color:var(--text);font-weight:500;"><span style="color:var(--text-light);font-size:11px;margin-right:6px;">${aberta?'▾':'▸'}</span>${fmtDataBR(n.data)}${ehHoje(n.data)?' <span style="font-size:10.5px;color:var(--green);">· hoje</span>':''}</div>
+        <div style="font-size:11.5px;color:var(--text-light);margin-top:2px;margin-left:17px;">${itens.length ? itens.length+(itens.length===1?' item':' itens') : 'sem itens anotados'}</div>
       </div>
       <div style="text-align:right;white-space:nowrap;">
         <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--brown);">${brl(n.total)}</div>
@@ -4463,18 +4430,18 @@ function renderNota(n){
       <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
         <button onclick="salvarEdicaoNota('${n.id}')" class="btn btn-brown" style="padding:8px 14px;font-size:12px;">Salvar</button>
         <button onclick="cancelarEdicaoNota()" class="btn" style="background:#fff;color:var(--text-mid);padding:8px 14px;font-size:12px;">Cancelar</button>
-        <button onclick="removerNota('${n.id}')" class="btn btn-red" style="padding:8px 14px;font-size:12px;margin-left:auto;">🗑 Apagar nota</button>
+        <button onclick="removerNota('${n.id}')" class="btn btn-red" style="padding:8px 14px;font-size:12px;margin-left:auto;">🗑 Apagar esta ida</button>
       </div></div>`;
   } else {
     dadosNota = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-        <button onclick="iniciarEdicaoNota('${n.id}')" class="btn" style="background:var(--cream-dark);color:var(--brown);padding:8px 14px;font-size:12px;">✏️ Editar mercado, data ou total</button>
-        <button onclick="removerNota('${n.id}')" class="btn" style="background:#fff;border:1px solid var(--red);color:var(--red);padding:8px 14px;font-size:12px;">🗑 Apagar nota</button>
+        <button onclick="iniciarEdicaoNota('${n.id}')" class="btn" style="background:var(--cream-dark);color:var(--brown);padding:8px 14px;font-size:12px;">✏️ Editar data, mercado ou total</button>
+        <button onclick="removerNota('${n.id}')" class="btn" style="background:#fff;border:1px solid var(--red);color:var(--red);padding:8px 14px;font-size:12px;">🗑 Apagar esta ida</button>
       </div>
       <div style="font-size:11px;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">O que comprou</div>`;
   }
   if(gConfirmando === 'nota:'+n.id){
     const q = itens.length;
-    dadosNota = barraConfirma(`Apagar a nota inteira de <strong>${escHtml(n.mercado||'mercado')}</strong> do dia ${fmtDataBR(n.data)}${q?`, com ${q} ${q===1?'item':'itens'}`:''}? Isso não tem volta.`, `removerNota('${n.id}',true)`, 'Sim, apagar a nota') + dadosNota;
+    dadosNota = barraConfirma(`Apagar a ida a <strong>${escHtml(n.mercado||'mercado')}</strong> do dia ${fmtDataBR(n.data)}${q?`, com ${q} ${q===1?'item':'itens'}`:''}? Isso não tem volta.`, `removerNota('${n.id}',true)`, 'Sim, apagar a nota') + dadosNota;
   }
 
   const linhasItens = itens.length ? itens.map(it=>{
@@ -4523,6 +4490,149 @@ function renderNota(n){
         <div style="font-size:10.5px;color:var(--text-light);margin-top:6px;">Aperte Enter para adicionar e já começar o próximo. Para corrigir um item, toque em ✏️; para apagar, em 🗑.</div>
       </div>
     </div>
+  </div>`;
+}
+
+
+function ehHoje(d){ return d === hojeISO(); }
+function voltarMercados(){ mercadoAberto = null; escolhendoData = false; renderGastos(); }
+function abrirMercado(i){
+  const m = _listaMerc[i]; if(!m) return;
+  mercadoAberto = m.chave; escolhendoData = false;
+  notasAbertas.clear();
+  const idas = idasDoMercado(m.chave);
+  if(idas.length) notasAbertas.add(idas[0].id);        // já abre a ida mais recente
+  renderGastos();
+}
+function idasDoMercado(chave){
+  return notas.filter(n => normalizar(n.mercado) === chave && gastoMesKey(n.data) === mesExibido())
+              .sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+}
+function nomeDoMercado(chave){
+  const m = _listaMerc.find(x=>x.chave===chave);
+  if(m) return m.nome;
+  const reg = mercados.find(x=>normalizar(x)===chave);
+  if(reg) return reg;
+  const n = notas.find(x=>normalizar(x.mercado)===chave);
+  return n ? n.mercado : chave;
+}
+// Abre a ida daquele dia; se já existe, entra nela em vez de criar outra
+function abrirIda(dataISO){
+  syncNotas();
+  const nome = nomeDoMercado(mercadoAberto);
+  const existe = notas.find(n => normalizar(n.mercado)===mercadoAberto && n.data===dataISO);
+  if(existe){
+    gastosMesFiltro = gastoMesKey(dataISO);
+    notasAbertas.add(existe.id); escolhendoData = false;
+    renderGastos();
+    setTimeout(()=>{ const f=document.getElementById('ni-nome-'+existe.id); if(f) f.focus(); }, 60);
+    showToast('Você já tinha uma compra nesse dia — abri ela para continuar.');
+    return;
+  }
+  const ida = { id: novoId('n'), ts: Date.now(), mercado: nome, data: dataISO, total: 0, totalAuto: true, itens: [] };
+  notas.push(ida);
+  garantirMercado(nome);
+  persistNotas();
+  gastosMesFiltro = gastoMesKey(dataISO);
+  notasAbertas.add(ida.id); escolhendoData = false;
+  renderGastos();
+  setTimeout(()=>{ const f=document.getElementById('ni-nome-'+ida.id); if(f){ if(f.scrollIntoView) f.scrollIntoView({behavior:'smooth',block:'center'}); f.focus(); } }, 60);
+}
+function comprarHoje(){ abrirIda(hojeISO()); }
+function abrirOutroDia(){ escolhendoData = true; renderGastos();
+  setTimeout(()=>{ const d=document.getElementById('data-outro-dia'); if(d) d.focus(); },50); }
+function confirmarOutroDia(){
+  const d = document.getElementById('data-outro-dia');
+  if(!d || !d.value){ showToast('Escolha o dia da compra.'); return; }
+  abrirIda(d.value);
+}
+function criarMercado(){
+  const inp = document.getElementById('merc-novo-lista');
+  const nome = (inp && inp.value || '').trim();
+  if(!nome){ showToast('Escreva o nome do mercado.'); return; }
+  garantirMercado(nome);
+  mercadoAberto = normalizar(nome);
+  renderGastos(); showToast('Mercado cadastrado! Agora anote a compra.');
+}
+
+// ── Tela 1: lista de mercados do mês ──
+function renderListaMercados(doMes){
+  const porMerc = new Map();
+  mercados.forEach(m => porMerc.set(normalizar(m), { chave: normalizar(m), nome: m, total: 0, idas: 0, itens: 0 }));
+  doMes.forEach(n => {
+    const k = normalizar(n.mercado) || 'sem-mercado';
+    if(!porMerc.has(k)) porMerc.set(k, { chave: k, nome: n.mercado || 'Sem mercado', total: 0, idas: 0, itens: 0 });
+    const g = porMerc.get(k);
+    g.total += (n.total||0); g.idas++; g.itens += (n.itens||[]).length;
+  });
+  _listaMerc = [...porMerc.values()].sort((a,b)=> b.total - a.total || a.nome.localeCompare(b.nome,'pt-BR'));
+  const maxT = Math.max(..._listaMerc.map(x=>x.total), 1);
+
+  const cartoes = _listaMerc.map((m,i)=>{
+    const vazio = m.idas === 0;
+    return `<div onclick="abrirMercado(${i})" style="border:1px solid ${vazio?'var(--cream-border)':'var(--brown)'};border-radius:10px;padding:12px 14px;margin-bottom:8px;background:#fff;cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <div style="min-width:0;">
+          <div style="font-size:14.5px;color:var(--text);font-weight:500;">🏪 ${escHtml(m.nome)}</div>
+          <div style="font-size:11.5px;color:var(--text-light);margin-top:2px;">${vazio ? 'nenhuma compra neste mês' : `${m.idas} ${m.idas===1?'ida':'idas'} · ${m.itens} ${m.itens===1?'item':'itens'}`}</div>
+        </div>
+        <div style="text-align:right;white-space:nowrap;">
+          <div style="font-family:'Playfair Display',serif;font-size:18px;color:${vazio?'var(--text-light)':'var(--brown)'};">${brl(m.total)}</div>
+          <div style="font-size:11px;color:var(--text-light);">abrir ›</div>
+        </div>
+      </div>
+      ${vazio?'':`<div style="height:5px;background:var(--cream-dark);border-radius:3px;overflow:hidden;margin-top:8px;">
+        <div style="width:${(m.total/maxT*100).toFixed(1)}%;height:100%;background:var(--brown);"></div></div>`}
+    </div>`;
+  }).join('');
+
+  return `<div class="card" style="border-top:3px solid var(--brown);margin-bottom:16px;">
+    <div class="card-title">🏪 Em qual mercado ela comprou?</div>
+    <div style="font-size:11.5px;color:var(--text-light);margin-bottom:10px;">Toque no mercado para ver as compras e anotar o que ela trouxe.</div>
+    ${cartoes || '<div style="font-size:12.5px;color:var(--text-light);padding:6px 0;">Nenhum mercado cadastrado ainda. Cadastre o primeiro abaixo.</div>'}
+    <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;border-top:1px solid var(--cream-border);padding-top:12px;">
+      <input type="text" id="merc-novo-lista" placeholder="Nome de um mercado novo" onkeydown="if(event.key==='Enter'){criarMercado();}" style="flex:1;min-width:170px;border:1px solid var(--cream-border);border-radius:6px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--cream);">
+      <button class="btn btn-brown" onclick="criarMercado()" style="padding:9px 16px;font-size:13px;">+ Cadastrar mercado</button>
+    </div>
+  </div>`;
+}
+
+// ── Tela 2: um mercado, com suas idas ──
+function renderMercado(){
+  const nome = nomeDoMercado(mercadoAberto);
+  const idas = idasDoMercado(mercadoAberto);
+  const total = idas.reduce((s,n)=>s+(n.total||0),0);
+  const hoje = idas.find(n=>ehHoje(n.data));
+
+  const formData = escolhendoData
+    ? `<div style="background:var(--cream-dark);border-radius:8px;padding:10px;margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:12px;color:var(--text-mid);">Que dia foi a compra?</span>
+        <input type="date" id="data-outro-dia" value="${hojeISO()}" style="border:1px solid var(--cream-border);border-radius:6px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;color:var(--text);">
+        <button class="btn btn-brown" onclick="confirmarOutroDia()" style="padding:8px 14px;font-size:12px;">Anotar essa compra</button>
+        <button class="btn" onclick="escolhendoData=false;renderGastos()" style="background:#fff;color:var(--text-mid);padding:8px 14px;font-size:12px;">Cancelar</button>
+      </div>` : '';
+
+  const lista = idas.length
+    ? idas.map(renderNota).join('')
+    : `<div style="padding:20px;text-align:center;color:var(--text-light);font-size:13px;line-height:1.7;">
+        Nenhuma compra aqui em ${gastoMesLabel(mesExibido())}.<br>Toque em <strong>Comprei hoje</strong> ou em <strong>Outro dia</strong> para anotar.</div>`;
+
+  return `<div style="margin-bottom:16px;">
+    <button onclick="voltarMercados()" style="border:none;background:transparent;color:var(--brown);font-size:13px;cursor:pointer;padding:0 0 8px 0;">‹ Todos os mercados</button>
+    <div class="card" style="border-top:3px solid var(--brown);margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);">🏪 ${escHtml(nome)}</div>
+          <div style="font-size:11.5px;color:var(--text-light);margin-top:2px;">${gastoMesLabel(mesExibido())} · ${idas.length} ${idas.length===1?'ida':'idas'} · ${brl(total)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn btn-brown" onclick="comprarHoje()" style="padding:10px 16px;font-size:13px;">${hoje?'+ Continuar a compra de hoje':'+ Comprei hoje ('+fmtDataBR(hojeISO()).slice(0,5)+')'}</button>
+        <button class="btn" onclick="abrirOutroDia()" style="background:var(--cream-dark);color:var(--text-mid);padding:10px 16px;font-size:13px;">+ Outro dia</button>
+      </div>
+      ${formData}
+    </div>
+    ${lista}
   </div>`;
 }
 
@@ -4629,7 +4739,7 @@ function renderResumo(lista){
   const linhaDet = (onclick, esq, dir) => `<div onclick="${onclick}" style="display:flex;justify-content:space-between;gap:10px;padding:7px 10px;font-size:12px;color:var(--text-mid);border-top:1px solid #fff;cursor:pointer;">
       <span>${esq}</span><span style="white-space:nowrap;">${dir}</span></div>`;
 
-  _resumoMerc = resumoMercados(lista);
+  _resumoMerc = [];
   const maxM = Math.max(..._resumoMerc.map(x=>x.total), 1);
   const htmlM = _resumoMerc.map((x,i)=>{
     const aberto = mercAbertos.has(x.chave);
@@ -4676,29 +4786,19 @@ function renderResumo(lista){
   }).join('')
   : `<div style="font-size:12px;color:var(--text-light);line-height:1.6;padding:6px 0;">Nenhum item anotado em ${periodo}. Abra uma nota e anote o que comprou, com a quantidade e o valor, para ver aqui quanto gastou de cada ingrediente.</div>`;
 
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;margin-bottom:16px;">
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;">
     <div class="card" style="border-top:3px solid var(--green);">
       <div class="card-title">🧀 Quanto gastou em cada ingrediente</div>
       <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">${periodo} · toque num ingrediente para ver cada compra</div>
       ${htmlI}
     </div>
-    <div class="card" style="border-top:3px solid var(--brown);">
-      <div class="card-title">🏪 Quanto gastou em cada mercado</div>
-      <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">${periodo} · toque num mercado para ver as notas</div>
-      ${htmlM}
-    </div>
   </div>`;
 }
 
 function renderGastos(){
-  const lista = document.getElementById('notas-lista');
-  if(!lista) return;
+  const alvoEl = document.getElementById('gastos-conteudo');
+  if(!alvoEl) return;
   syncNotas();
-
-  const dIn = document.getElementById('n-data');
-  if(dIn && !dIn.value) dIn.value = hojeISO();
-  renderSelectMercado();
-  renderMercadosBox();
   renderSugestoes();
 
   const mes = mesExibido();
@@ -4706,35 +4806,24 @@ function renderGastos(){
   if(lbl) lbl.textContent = gastoMesLabel(mes);
   const doMes = notas.filter(n => gastoMesKey(n.data) === mes);
   const total = doMes.reduce((s,n)=>s+(n.total||0),0);
-  const linha = document.getElementById('g-mes-total');
   const comDif = doMes.filter(n=>divergencia(n)).length;
-  if(linha) linha.innerHTML = doMes.length
-    ? `Você gastou <strong style="color:var(--brown);font-size:15px;">${brl(total)}</strong> em ${doMes.length} ${doMes.length===1?'nota':'notas'} neste mês.`
-      + (comDif?`<div style="background:var(--amber-soft);border:1px solid var(--amber);border-radius:8px;padding:9px 11px;margin-top:8px;">
-          <div style="color:var(--amber);font-size:12px;">⚠️ ${comDif} ${comDif===1?'nota tem':'notas têm'} a soma dos itens diferente do total anotado.</div>
-          <button onclick="corrigirTodasAsNotas()" class="btn" style="background:#fff;border:1px solid var(--amber);color:var(--amber);padding:6px 12px;font-size:11.5px;margin-top:7px;">Usar a soma dos itens ${comDif===1?'nessa nota':'nessas notas'}</button>
-        </div>`:'')
-    : `Nenhuma nota em ${gastoMesLabel(mes)}.`;
-  const tit = document.getElementById('notas-titulo');
-  if(tit) tit.textContent = '📋 Notas de ' + gastoMesLabel(mes);
-
-  renderResumo(doMes);
-
-  if(!doMes.length){
-    const temOutras = notas.length > 0;
+  const linha = document.getElementById('g-mes-total');
+  if(linha){
     const meses = mesesComNotas().filter(m=>m!==mes);
     const alvo = meses[meses.length-1];
     const qtd = alvo ? notas.filter(n=>gastoMesKey(n.data)===alvo).length : 0;
-    lista.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-light);font-size:13px;line-height:1.7;">
-      Nenhuma nota em ${gastoMesLabel(mes)}.<br>
-      ${temOutras
-        ? `Suas notas estão em outro mês.<br>
-           <button onclick="irParaMes('${alvo}')" class="btn btn-brown" style="margin-top:12px;padding:10px 18px;font-size:13px;">Ver ${gastoMesLabel(alvo)} (${qtd} ${qtd===1?'nota':'notas'})</button>
-           <div style="font-size:11.5px;margin-top:8px;">Ou use as setas ‹ › lá em cima.</div>`
-        : 'Toque em <strong>+ Nova nota</strong> para anotar a primeira compra.'}</div>`;
-    return;
+    linha.innerHTML = doMes.length
+      ? `Você gastou <strong style="color:var(--brown);font-size:15px;">${brl(total)}</strong> em ${doMes.length} ${doMes.length===1?'ida ao mercado':'idas ao mercado'} neste mês.`
+        + (comDif?`<div style="background:var(--amber-soft);border:1px solid var(--amber);border-radius:8px;padding:9px 11px;margin-top:8px;">
+            <div style="color:var(--amber);font-size:12px;">⚠️ ${comDif} ${comDif===1?'compra tem':'compras têm'} a soma dos itens diferente do total anotado.</div>
+            <button onclick="corrigirTodasAsNotas()" class="btn" style="background:#fff;border:1px solid var(--amber);color:var(--amber);padding:6px 12px;font-size:11.5px;margin-top:7px;">Usar a soma dos itens ${comDif===1?'nessa compra':'nessas compras'}</button>
+          </div>`:'')
+      : `Nenhuma compra em ${gastoMesLabel(mes)}.`
+        + (alvo?`<div style="margin-top:8px;"><button onclick="irParaMes('${alvo}')" class="btn btn-brown" style="padding:8px 14px;font-size:12.5px;">Ver ${gastoMesLabel(alvo)} (${qtd} ${qtd===1?'compra':'compras'})</button></div>`:'');
   }
-  lista.innerHTML = doMes.map(renderNota).join('');
+
+  alvoEl.innerHTML = mercadoAberto ? renderMercado() : renderListaMercados(doMes);
+  renderResumo(doMes);
 }
 
 // ── Importar de volta a planilha baixada do portal ──
